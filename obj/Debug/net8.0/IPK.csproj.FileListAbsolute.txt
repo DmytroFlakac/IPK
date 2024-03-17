@@ -1,0 +1,15 @@
+C:\Users\Home\Documents\GitHub\IPK\bin\Debug\net8.0\IPK.exe
+C:\Users\Home\Documents\GitHub\IPK\bin\Debug\net8.0\IPK.deps.json
+C:\Users\Home\Documents\GitHub\IPK\bin\Debug\net8.0\IPK.runtimeconfig.json
+C:\Users\Home\Documents\GitHub\IPK\bin\Debug\net8.0\IPK.dll
+C:\Users\Home\Documents\GitHub\IPK\bin\Debug\net8.0\IPK.pdb
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.AssemblyInfoInputs.cache
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.AssemblyInfo.cs
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.csproj.CoreCompileInputs.cache
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.sourcelink.json
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.dll
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\refint\IPK.dll
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.pdb
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\IPK.genruntimeconfig.cache
+C:\Users\Home\Documents\GitHub\IPK\obj\Debug\net8.0\ref\IPK.dll
