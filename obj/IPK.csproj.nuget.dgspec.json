@@ -8,7 +8,7 @@
       "version": "1.0.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\Home\\Documents\\GitHub\\IPK\\IPK.csproj",
-        "projectName": "IPK",
+        "projectName": "ipk24chat-client",
         "projectPath": "C:\\Users\\Home\\Documents\\GitHub\\IPK\\IPK.csproj",
         "packagesPath": "C:\\Users\\Home\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\Home\\Documents\\GitHub\\IPK\\obj\\",
@@ -44,6 +44,12 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "System.CommandLine": {
+              "target": "Package",
+              "version": "[2.0.0-beta4.22272.1, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
