@@ -76,7 +76,7 @@ namespace IPK24Chat
 
         public void StartInteractiveSession()
         {
-            var listenTask = ListenForServer(client);
+            Task listenTask = ListenForServer(client!);
             Console.CancelKeyPress += (sender, e) => {
                 e.Cancel = true; // Prevents the program from terminating.
                 Disconnect();
@@ -115,7 +115,7 @@ namespace IPK24Chat
             }
         }
 
-        private void ProcessCommand(string command, Task listenTask)
+        private async void ProcessCommand(string command, Task listenTask)
         {
             string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string commandType = parts[0].ToLower();
@@ -134,6 +134,7 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
+                    listenTask.Wait();
                     HandleAuth(parts[1], parts[2], parts[3]);
                     break;
                 case "/join":
@@ -146,8 +147,8 @@ namespace IPK24Chat
                     {
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                     }
-                    // listenTask.Wait();
                     HandleJoin(parts[1]);
+                    await listenTask;
                     break;
                 case "/rename":
                     if (parts.Length != 2)
@@ -175,8 +176,8 @@ namespace IPK24Chat
         {
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
             displayName = newName; // Set local display name
-            string reply = ReceiveMessage();
-            ProcessServerReply(reply);
+            // string reply = ReceiveMessage();
+            // ProcessServerReply(reply);
             autorized = true;
         }
 
