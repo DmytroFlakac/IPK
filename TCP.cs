@@ -121,8 +121,10 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                         continue;
                     }
-                    else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
+                    // else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
+                    else if (input.Length > 1400)
                     {
+                        Console.WriteLine(input);
                         Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
                         continue;
                     }
@@ -191,7 +193,7 @@ namespace IPK24Chat
             }
         }
 
-        private async void HandleAuth(string username, string secret, string newName)
+        private void HandleAuth(string username, string secret, string newName)
         {
             if(username.Length > 20 || secret.Length > 128 || newName.Length > 20 || 
             !Regex.IsMatch(username, baseRegex) || !Regex.IsMatch(secret, baseRegex) || !Regex.IsMatch(newName, baseRegex))
@@ -200,16 +202,17 @@ namespace IPK24Chat
                 return;
             }
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
+            Thread.Sleep(300);
             NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
-            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
             ProcessServerReply(message);
             displayName = newName; 
             autorized = true;
         }
 
-        private async void HandleJoin(string channelId)
+        private void HandleJoin(string channelId)
         {
             // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
             // {
@@ -222,9 +225,10 @@ namespace IPK24Chat
                 return;
             }
             SendMessage($"JOIN {channelId} AS {displayName}");
+            Thread.Sleep(300);
             NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
-            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
             ProcessServerReply(message);
         }
