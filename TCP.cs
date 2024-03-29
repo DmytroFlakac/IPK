@@ -22,12 +22,12 @@ namespace IPK24Chat
         // }
         
         
-        private async Task ListenForServer(TcpClient client)
+        private async Task ListenForServer(TcpClient client, CancellationToken token)
         {
             NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
 
-            while (true)
+            while (!token.IsCancellationRequested)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
                 if (bytesRead == 0)
@@ -88,14 +88,16 @@ namespace IPK24Chat
 
         public void StartInteractiveSession()
         {
-            Task listenTask = ListenForServer(client!);
+           
             Console.CancelKeyPress += (sender, e) => {
                 e.Cancel = true; // Prevents the program from terminating.
                 Disconnect();
             };
 
-            while (true)
+            while (true) 
             {
+                CancellationTokenSource cts = new CancellationTokenSource();
+                Task listenTask = ListenForServer(client, cts.Token);
                 string input = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(input))
@@ -105,7 +107,7 @@ namespace IPK24Chat
 
                 if (input.StartsWith("/"))
                 {
-                    ProcessCommand(input, listenTask);
+                    ProcessCommand(input, listenTask, cts);
                 }
                 else
                 {
@@ -132,7 +134,7 @@ namespace IPK24Chat
             }
         }
 
-        private async void ProcessCommand(string command, Task listenTask)
+        private void ProcessCommand(string command, Task listenTask, CancellationTokenSource cts)
         {
             string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string commandType = parts[0].ToLower();
@@ -151,9 +153,8 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
-                    // listenTask.Wait();                   
+                    cts.Cancel();                
                     HandleAuth(parts[1], parts[2], parts[3]);
-                    await listenTask;
                     break;
                 case "/join":
                     if (parts.Length != 2)
@@ -165,8 +166,8 @@ namespace IPK24Chat
                     {
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                     }
+                    cts.Cancel();
                     HandleJoin(parts[1]);
-                    await listenTask;
                     break;
                 case "/rename":
                     if (parts.Length != 2)
@@ -190,7 +191,7 @@ namespace IPK24Chat
             }
         }
 
-        private void HandleAuth(string username, string secret, string newName)
+        private async void HandleAuth(string username, string secret, string newName)
         {
             if(username.Length > 20 || secret.Length > 128 || newName.Length > 20 || 
             !Regex.IsMatch(username, baseRegex) || !Regex.IsMatch(secret, baseRegex) || !Regex.IsMatch(newName, baseRegex))
@@ -199,11 +200,16 @@ namespace IPK24Chat
                 return;
             }
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
+            NetworkStream stream = client.GetStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            ProcessServerReply(message);
             displayName = newName; 
             autorized = true;
         }
 
-        private void HandleJoin(string channelId)
+        private async void HandleJoin(string channelId)
         {
             // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
             // {
@@ -216,6 +222,11 @@ namespace IPK24Chat
                 return;
             }
             SendMessage($"JOIN {channelId} AS {displayName}");
+            NetworkStream stream = client.GetStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            ProcessServerReply(message);
         }
 
         private void ProcessServerReply(string reply)

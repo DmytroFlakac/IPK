@@ -1,18 +1,17 @@
-# Compiler
-DOTNET=dotnet
+PROJECT_NAME=IPK
+TARGET_FRAMEWORK=net8.0
+RUNTIME=linux-x64
+PUBLISH_DIR=./root
+OUTPUT_NAME=ipk24chat-client
 
-# Output path
-OUTPUT_DIR=./roo
-OUTPUT=$(OUTPUT_DIR)/ipk24chat-client.exe
+.PHONY: build clean
 
-# Default target
-all: $(OUTPUT)
+default: build
 
-# Rule for creating the executable
-$(OUTPUT):
-	$(DOTNET) build -c Release -o $(OUTPUT_DIR)
+build:
+	dotnet publish $(PROJECT_NAME).csproj -c Release -r $(RUNTIME) --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o $(PUBLISH_DIR)
+	mv $(PUBLISH_DIR)/$(PROJECT_NAME) $(OUTPUT_NAME) || true
 
-# Clean target
 clean:
-	$(DOTNET) clean
-	rm -rf $(OUTPUT_DIR)
+	rm -f $(OUTPUT_NAME)
+	rm -rf $(PUBLISH_DIR)

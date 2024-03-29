@@ -1,10 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "mFIyivGmaijE0md99Kt6AkMB1BXt///e/c2/ZTXeSztH8EW9IclzR7PmBpduM2awa5zFXgc+ecYHYb9U4oaRsg==",
+  "dgSpecHash": "aMA8Mh4VC72/Fag1fnnFim4kASgSk5hLVklkmWdQpCfotga9KshnhSY4wrxCIz3UTJA3+Flk3shZ5H/H6h4VLA==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Home\\Documents\\GitHub\\IPK\\IPK.csproj",
+  "projectFilePath": "/home/xovsia00/IPK_Dima/IPK/IPK.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Home\\.nuget\\packages\\system.commandline\\2.0.0-beta4.22272.1\\system.commandline.2.0.0-beta4.22272.1.nupkg.sha512"
+    "/home/xovsia00/.nuget/packages/microsoft.net.illink.tasks/8.0.3/microsoft.net.illink.tasks.8.0.3.nupkg.sha512",
+    "/home/xovsia00/.nuget/packages/system.commandline/2.0.0-beta4.22272.1/system.commandline.2.0.0-beta4.22272.1.nupkg.sha512",
+    "/home/xovsia00/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/8.0.3/microsoft.netcore.app.runtime.linux-x64.8.0.3.nupkg.sha512",
+    "/home/xovsia00/.nuget/packages/microsoft.aspnetcore.app.runtime.linux-x64/8.0.3/microsoft.aspnetcore.app.runtime.linux-x64.8.0.3.nupkg.sha512"
   ],
   "logs": []
 }

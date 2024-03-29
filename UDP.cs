@@ -31,7 +31,7 @@ namespace IPK24Chat
         //     await Task.Run(() => StartInteractiveSession());
         // }
 
-        public static async Task ListenForServer(UdpClient client, CancellationToken cts)
+        public async Task ListenForServer(UdpClient client, CancellationToken cts)
         {
             IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Any, 0);
             try
@@ -42,7 +42,24 @@ namespace IPK24Chat
                     byte[] message = result.Buffer;
                     serverEndpoint = result.RemoteEndPoint;
                     int messageID = UDPmessageHelper.getMessageID(message);
-                    MessageType messageType = UDPmessageHelper.getMessageType(message);                   
+                    MessageType messageType = UDPmessageHelper.getMessageType(message);
+                    sendConfirmation(messageID);
+                    if(messageType == MessageType.MSG)
+                    {
+                        string msg = UDPmessageHelper.getMSGContents(message);
+                        string displayname = UDPmessageHelper.getMSGdisplayName(message);
+                        Console.WriteLine($"{displayname}: {msg}");
+                    }
+                    else if(messageType == MessageType.ERR)
+                    {
+                        string msg = UDPmessageHelper.getMSGContents(message);
+                        string displayname = UDPmessageHelper.getMSGdisplayName(message);
+                        Console.WriteLine($"ERR FROM {displayname}: {msg}");
+                    } 
+                    else if(messageType == MessageType.BYE)
+                    {
+                        Disconnect();
+                    }       
                 }
             }
             catch (SocketException e)
@@ -53,12 +70,6 @@ namespace IPK24Chat
 
         public void StartInteractiveSession()
         {
-            // Task listenTask = ListenForServer(client!);
-            // Console.CancelKeyPress += (sender, e) => {
-            //     e.Cancel = true; // Prevents the program from terminating.
-            //     Disconnect();
-            // };
-
             while (true)
             {
                 CancellationTokenSource cts = new CancellationTokenSource();
@@ -92,9 +103,7 @@ namespace IPK24Chat
                         continue;
                     }
 
-                    // SendMessage($"MSG FROM {displayName} IS {input}");
-                    // string reply = ReceiveMessage();
-                    // ProcessServerReply(reply);
+                    HandleMessage(input);
                 }
             }
         }
@@ -145,7 +154,6 @@ namespace IPK24Chat
                     break;
                 case "/bye":
                     Disconnect();
-                    Environment.Exit(0);
                     break;
                 case "/help":
                     ShowHelp();
@@ -160,6 +168,7 @@ namespace IPK24Chat
         private void Disconnect()
         {
             client.Close();
+            Environment.Exit(0);
         }
 
         private void HandleAuth(string username, string secret, string displayName)
@@ -209,7 +218,7 @@ namespace IPK24Chat
         //     client.Send(messageBytes, messageBytes.Length, serverAddress, serverPort);
         // }
 
-        public void sendConfirmation(UdpClient client, int messageID)
+        public void sendConfirmation(int messageID)
         {
             byte[] messageBytes = UDPmessageHelper.buildMessage(messageID, MessageType.CONFIRM);
             client.Send(messageBytes, messageBytes.Length, serverAddress, serverPort);
@@ -220,19 +229,29 @@ namespace IPK24Chat
             
             for (int i = 0; i <= udpRetryCount; i++)
             {
-               IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Any, 0);
-               byte[] response = client.Receive(ref serverEndpoint);
-               UDPmessageHelper.printMessage(response);
-
-                if (UDPmessageHelper.getMessageType(response) == MessageType.CONFIRM && 
-                UDPmessageHelper.getMessageID(response) == messageID)
+                try
                 {
-                    Console.WriteLine("Success: Server confirmed message.");
-                    return true;
+                    IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Any, 0);
+                    byte[] response = client.Receive(ref serverEndpoint);
+                    UDPmessageHelper.printMessage(response);
+                    if (UDPmessageHelper.getMessageType(response) == MessageType.CONFIRM && 
+                    UDPmessageHelper.getMessageID(response) == messageID)
+                    {
+                        Console.WriteLine("Success: Server confirmed message.");
+                        return true;
+                    }
+                    else
+                    {
+                        client.Send(messageBytes, messageBytes.Length, serverAddress, serverPort);
+                    }
                 }
-                else
+                catch (SocketException e)
                 {
-                    client.Send(messageBytes, messageBytes.Length, serverAddress, serverPort);
+                    if (e.SocketErrorCode == SocketError.TimedOut)
+                    {
+                        Console.WriteLine("Timeout: Server did not reply.");
+                        continue;
+                    }
                 }
             }
 
@@ -251,7 +270,7 @@ namespace IPK24Chat
                     UDPmessageHelper.printMessage(response);
                     serverPort = serverEndpoint.Port;
                     int responseID = UDPmessageHelper.getMessageID(response);
-                    sendConfirmation(client, responseID);
+                    sendConfirmation(responseID);
                     if(UDPmessageHelper.getMessageType(response) == MessageType.CONFIRM)
                     {
                         continue;
@@ -272,12 +291,12 @@ namespace IPK24Chat
                     {
                         continue;
                     }
-                    if(UDPmessageHelper.getReplyResult(response) == 0)
+                    if(UDPmessageHelper.getReplyResult(response) == 1)
                     {
                         Console.WriteLine($"Success: {UDPmessageHelper.getReplyMessageContents(response)}");
                         return true;
                     }
-                    else
+                    else if(UDPmessageHelper.getReplyResult(response) == 0)
                     {
                         Console.WriteLine($"Failure: {UDPmessageHelper.getReplyMessageContents(response)}");
                         return false;

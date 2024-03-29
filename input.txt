@@ -1,7 +1,3 @@
 /auth xtrifo00 baa9a362-1e6b-45fe-98d9-ca21b195dab2 DT
 Hello world!
 Hello chat
-/join discord.verified-1
-Join check 1
-Join check 2
-Join check 3
