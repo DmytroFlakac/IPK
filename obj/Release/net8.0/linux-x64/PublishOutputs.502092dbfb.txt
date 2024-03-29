@@ -1,0 +1,2 @@
+/home/xtrifo00/IPK/IPK/root/ipk24chat-client.pdb
+/home/xtrifo00/IPK/IPK/root/ipk24chat-client

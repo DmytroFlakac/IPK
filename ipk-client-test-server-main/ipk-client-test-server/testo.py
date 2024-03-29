@@ -1128,6 +1128,7 @@ def tcp_invalid_msg(tester):
 
     # Client should respond with ERR message
     message = tester.receive_message()
+    print(message)
     assert re.match(
         r"ERR FROM c IS [ -~]+\r\n", message
     ), "Incoming message does not match expected ERR message."

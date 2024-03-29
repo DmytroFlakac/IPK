@@ -230,19 +230,19 @@
     ]
   },
   "packageFolders": {
-    "/home/xovsia00/.nuget/packages/": {}
+    "/home/xtrifo00/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/xovsia00/IPK_Dima/IPK/IPK.csproj",
+      "projectUniqueName": "/home/xtrifo00/IPK/IPK/IPK.csproj",
       "projectName": "ipk24chat-client",
-      "projectPath": "/home/xovsia00/IPK_Dima/IPK/IPK.csproj",
-      "packagesPath": "/home/xovsia00/.nuget/packages/",
-      "outputPath": "/home/xovsia00/IPK_Dima/IPK/obj/",
+      "projectPath": "/home/xtrifo00/IPK/IPK/IPK.csproj",
+      "packagesPath": "/home/xtrifo00/.nuget/packages/",
+      "outputPath": "/home/xtrifo00/IPK/IPK/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/home/xovsia00/.nuget/NuGet/NuGet.Config"
+        "/home/xtrifo00/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"

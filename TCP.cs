@@ -7,29 +7,30 @@ namespace IPK24Chat
 {
     class TcpChatClient
     {
-        private TcpClient? client;
+        private TcpClient client;
         // private int serverPort;
-        private NetworkStream? stream;
+        private NetworkStream stream;
         public bool autorized = false;
         private string? displayName; 
         
         private string baseRegex = @"^[A-Za-z0-9-]+$";
 
-        // public TcpChatClient(TcpClient client, int serverPort)
+        // public TcpChatClient(TcpClient client, NetworkStream stream)
         // {
         //     this.client = client;
-        //     this.serverPort = serverPort;
+        //     this.stream = stream;
         // }
         
         
-        private async Task ListenForServer(TcpClient client, CancellationToken token)
+        private async Task ListenForServer(CancellationToken token)
         {
-            NetworkStream stream = client.GetStream();
+            // NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
 
             while (!token.IsCancellationRequested)
             {
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+                
                 if (bytesRead == 0)
                 {
                     Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
@@ -39,6 +40,7 @@ namespace IPK24Chat
                 // ProcessServerReply(message);  
                 foreach (string line in message.Split("\r\n", StringSplitOptions.RemoveEmptyEntries))
                 {
+
                     ProcessServerReply(line);
                 }           
             }
@@ -51,6 +53,15 @@ namespace IPK24Chat
             {
                 client = new TcpClient();
                 client.Connect(serverAddress, serverPort);
+                // if (!client.Connected)
+                // {
+                //     Console.Error.WriteLine("ERR: Unable to connect to server.");
+                //     Environment.Exit(1);
+                // }
+                // else
+                // {
+                //     Console.WriteLine($"Connected to server at {serverAddress}:{serverPort}");
+                // }
                 stream = client.GetStream();
             }
             catch (Exception e)
@@ -62,8 +73,22 @@ namespace IPK24Chat
 
         public void SendMessage(string message)
         {
-            if (client == null || !client.Connected || stream == null)
+            if (client == null  || stream == null)
             {
+                if (client == null)
+                {
+                    Console.Error.WriteLine("ERR: Client is null");
+                }
+
+                // if (!client.Connected)
+                // {
+                //     Console.Error.WriteLine("ERR: Client is not connected");
+                // }
+
+                if (stream == null)
+                {
+                    Console.Error.WriteLine("ERR: Stream is null");
+                }
                 Console.Error.WriteLine("ERR: Not connected to any server. Please connect first.");
                 return;
             }
@@ -82,32 +107,64 @@ namespace IPK24Chat
         public void Disconnect()
         {
             SendMessage("BYE");
-            stream?.Close();
-            client?.Close();
+            stream.Close();
+            client.Close();
         }
 
         public void StartInteractiveSession()
         {
-           
-            Console.CancelKeyPress += (sender, e) => {
-                e.Cancel = true; // Prevents the program from terminating.
-                Disconnect();
-            };
+            // Console.CancelKeyPress += (sender, e) => {
+            //     e.Cancel = true; // Prevents the program from terminating.
+            //     Disconnect();
+            // };
+
+            // if (!client.Connected)
+            // {
+            //     Console.Error.WriteLine("ERR: Unable to connect to server.");
+            //     Environment.Exit(1);
+            // }
+            // else
+            // {
+            //     Console.WriteLine($"Connected to server at");
+            // }
 
             while (true) 
             {
                 CancellationTokenSource cts = new CancellationTokenSource();
-                Task listenTask = ListenForServer(client, cts.Token);
+                Task listenTask = ListenForServer(cts.Token);
+                Console.CancelKeyPress += (sender, e) => {
+                    e.Cancel = true; // Prevents the program from terminating.
+                    cts.Cancel();
+                    Thread.Sleep(300);
+                    Disconnect();
+                    Environment.Exit(0);
+                };
                 string input = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(input))
                 {
-                    continue;
+                    Disconnect();
+                    Environment.Exit(0);
                 }
+
+                // if (input == "EOF"){
+                //     Disconnect();
+                //     Environment.Exit(0);
+                // }
+
+                // if (!client.Connected)
+                // {
+                //     Console.Error.WriteLine("ERR: Unable to connect to server.");
+                //     Environment.Exit(1);
+                // }
+                // else
+                // {
+                //     Console.WriteLine($"Connected to server at");
+                // }
 
                 if (input.StartsWith("/"))
                 {
-                    ProcessCommand(input, listenTask, cts);
+                    ProcessCommand(input, cts);
                 }
                 else
                 {
@@ -136,7 +193,7 @@ namespace IPK24Chat
             }
         }
 
-        private void ProcessCommand(string command, Task listenTask, CancellationTokenSource cts)
+        private void ProcessCommand(string command, CancellationTokenSource cts)
         {
             string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string commandType = parts[0].ToLower();
@@ -155,7 +212,25 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
-                    cts.Cancel();                
+                    // if (!client.Connected)
+                    // {
+                    //     Console.Error.WriteLine("ERR: Unable to connect to server before cts.");
+                    //     Environment.Exit(1);
+                    // }
+                    // else
+                    // {
+                    //     Console.WriteLine($"Connected to server at before cts");
+                    // }    
+                    cts.Cancel(); 
+                    // if (!client.Connected)
+                    // {
+                    //     Console.Error.WriteLine("ERR: Unable to connect to server after cts.");
+                    //     Environment.Exit(1);
+                    // }
+                    // else
+                    // {
+                    //     Console.WriteLine($"Connected to server at after cts");
+                    // }               
                     HandleAuth(parts[1], parts[2], parts[3]);
                     break;
                 case "/join":
@@ -201,15 +276,24 @@ namespace IPK24Chat
                 Console.Error.WriteLine("ERR: Invalid input. Username, secret and display name must be alphanumeric and have a maximum length of 20, 128 and 20 characters respectively.");
                 return;
             }
+            // if (!client.Connected)
+            // {
+            //     Console.Error.WriteLine("ERR: Unable to connect to server send.");
+            //     Environment.Exit(1);
+            // }
+            // else
+            // {
+            //     Console.WriteLine($"Connected to server at send");
+            // }    
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
+            displayName = newName; 
             Thread.Sleep(300);
-            NetworkStream stream = client.GetStream();
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[1024];          
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            ProcessServerReply(message);
-            displayName = newName; 
-            autorized = true;
+            string trimMessage = message.TrimEnd('\r', '\n');
+            ProcessServerReply(trimMessage);   
+            // Console.WriteLine("Auth done");   
         }
 
         private void HandleJoin(string channelId)
@@ -226,7 +310,6 @@ namespace IPK24Chat
             }
             SendMessage($"JOIN {channelId} AS {displayName}");
             Thread.Sleep(300);
-            NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
@@ -235,41 +318,54 @@ namespace IPK24Chat
 
         private void ProcessServerReply(string reply)
         {
-            if (reply.StartsWith("REPLY OK IS"))
+            switch (reply)
             {
-                Console.WriteLine("Success: " + reply.Substring("REPLY OK IS".Length));
+                case string r when r.StartsWith("REPLY OK IS"):
+                    // Console.WriteLine("Reply OK IS:");
+                    Console.Error.WriteLine("Success:" + r.Substring("REPLY OK IS".Length));
+                    autorized = true;
+                    break;
+
+                case string r when r.StartsWith("REPLY NOK IS"):
+                    // Console.WriteLine("Reply NOK IS:");
+                    Console.Error.WriteLine("Failure:" + r.Substring("REPLY NOK IS".Length));
+                    // Console.WriteLine("Reply NOK IS:");
+                    break;
+
+                case string r when r.StartsWith("ERR FROM"):
+                    string errDisplayName = r.Substring("ERR FROM".Length, r.IndexOf("IS") - "ERR FROM".Length - 1);
+                    string errMessage = r.Substring(r.IndexOf("IS") + 3);
+                    Console.Error.WriteLine($"ERR FROM{errDisplayName}: {errMessage}");
+                    Disconnect();
+                    break;
+
+                case string r when r.StartsWith("MSG FROM") && r.Contains("IS"):
+                    // Console.WriteLine("MSG FROM:");
+                    int fromIndex = r.IndexOf("FROM") + 5;
+                    int isIndex = r.IndexOf("IS", fromIndex);
+                    string messageDisplayName = r.Substring(fromIndex, isIndex - fromIndex - 1);
+                    string messageContent = r.Substring(isIndex + 3);
+                    if (messageContent.Length > 1400)
+                    {
+                        Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters.");
+                        return;
+                    }
+                    Console.WriteLine($"{messageDisplayName}: {messageContent}");
+                    break;
+
+                case string r when r.Contains("BYE"):
+                    
+                    Disconnect();
+                    break;
+
+                default:
+                    Console.Error.WriteLine("ERR: Unknown server reply.");
+                    SendMessage($"ERR FROM {displayName} IS {reply}");
+                    break;
             }
-            else if (reply.StartsWith("REPLY NOK IS"))
-            {
-                Console.Error.WriteLine("Failure: " + reply.Substring("REPLY NOK IS".Length));
-            }
-            else if (reply.StartsWith("ERR FROM"))
-            {
-                Console.Error.WriteLine(reply);
-            }
-            else if (reply.StartsWith("MSG FROM") && reply.Contains("IS"))
-            { 
-                int fromIndex = reply.IndexOf("FROM") + 5; 
-                int isIndex = reply.IndexOf("IS", fromIndex);
-                string messageDisplayName = reply.Substring(fromIndex, isIndex - fromIndex - 1);
-                string messageContent = reply.Substring(isIndex + 3); 
-                if(messageContent.Length > 1400)
-                {
-                    Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters.");
-                    return;
-                }
-                Console.WriteLine($"{messageDisplayName}: {messageContent}");
-            }
-            else if(reply.Contains("BYE"))
-            {
-                Console.WriteLine("Server disconnected.");
-                Disconnect();
-                Environment.Exit(0);
-            }
-            else
-            {
-                Console.Error.WriteLine("ERR: Unknown server reply.");
-            }
+
+            // Console.WriteLine("End of ProcessServerReply");
+
         }
 
         private void ShowHelp()
