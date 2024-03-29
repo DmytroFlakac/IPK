@@ -1,15 +1,25 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace IPK24Chat
 {
     class TcpChatClient
     {
         private TcpClient? client;
+        // private int serverPort;
         private NetworkStream? stream;
         public bool autorized = false;
-        private string? displayName; // Holds the current user's display name
+        private string? displayName; 
+        
+        private string baseRegex = @"^[A-Za-z0-9-]+$";
+
+        // public TcpChatClient(TcpClient client, int serverPort)
+        // {
+        //     this.client = client;
+        //     this.serverPort = serverPort;
+        // }
         
         
         private async Task ListenForServer(TcpClient client)
@@ -25,10 +35,12 @@ namespace IPK24Chat
                     Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
                     break;
                 }
-
-                string message = Encoding.ASCII.GetString(buffer, 0, bytesRead).TrimEnd('\r', '\n');
-                ProcessServerReply(message);
-                
+                string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                // ProcessServerReply(message);  
+                foreach (string line in message.Split("\r\n", StringSplitOptions.RemoveEmptyEntries))
+                {
+                    ProcessServerReply(line);
+                }           
             }
         }
     
@@ -107,6 +119,11 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                         continue;
                     }
+                    else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
+                    {
+                        Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
+                        continue;
+                    }
 
                     SendMessage($"MSG FROM {displayName} IS {input}");
                     // string reply = ReceiveMessage();
@@ -134,8 +151,9 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
-                    listenTask.Wait();
+                    // listenTask.Wait();                   
                     HandleAuth(parts[1], parts[2], parts[3]);
+                    await listenTask;
                     break;
                 case "/join":
                     if (parts.Length != 2)
@@ -174,18 +192,30 @@ namespace IPK24Chat
 
         private void HandleAuth(string username, string secret, string newName)
         {
+            if(username.Length > 20 || secret.Length > 128 || newName.Length > 20 || 
+            !Regex.IsMatch(username, baseRegex) || !Regex.IsMatch(secret, baseRegex) || !Regex.IsMatch(newName, baseRegex))
+            {
+                Console.Error.WriteLine("ERR: Invalid input. Username, secret and display name must be alphanumeric and have a maximum length of 20, 128 and 20 characters respectively.");
+                return;
+            }
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
-            displayName = newName; // Set local display name
-            // string reply = ReceiveMessage();
-            // ProcessServerReply(reply);
+            displayName = newName; 
             autorized = true;
         }
 
         private void HandleJoin(string channelId)
         {
+            // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
+            // {
+            //     Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
+            //     return;
+            // }
+            if (channelId.Length > 20)
+            {
+                Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
+                return;
+            }
             SendMessage($"JOIN {channelId} AS {displayName}");
-            string reply = ReceiveMessage();
-            ProcessServerReply(reply);
         }
 
         private void ProcessServerReply(string reply)
@@ -202,14 +232,28 @@ namespace IPK24Chat
             {
                 Console.Error.WriteLine(reply);
             }
-            else if (reply.StartsWith("MSG FROM"))
-            {
-                // Extract DisplayName and MessageContent for incoming MSG
-                int fromIndex = reply.IndexOf("FROM") + 5; // Start after "FROM "
+            else if (reply.StartsWith("MSG FROM") && reply.Contains("IS"))
+            { 
+                int fromIndex = reply.IndexOf("FROM") + 5; 
                 int isIndex = reply.IndexOf("IS", fromIndex);
                 string messageDisplayName = reply.Substring(fromIndex, isIndex - fromIndex - 1);
-                string messageContent = reply.Substring(isIndex + 3); // Start after "IS "
+                string messageContent = reply.Substring(isIndex + 3); 
+                if(messageContent.Length > 1400)
+                {
+                    Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters.");
+                    return;
+                }
                 Console.WriteLine($"{messageDisplayName}: {messageContent}");
+            }
+            else if(reply.Contains("BYE"))
+            {
+                Console.WriteLine("Server disconnected.");
+                Disconnect();
+                Environment.Exit(0);
+            }
+            else
+            {
+                Console.Error.WriteLine("ERR: Unknown server reply.");
             }
         }
 
@@ -221,7 +265,5 @@ namespace IPK24Chat
             Console.WriteLine("/rename {DisplayName} - Change your display name");
             Console.WriteLine("/help - Show this help message");
         }
-
-        // Additional methods for processing specific commands and handling server replies...
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Net.Sockets;
 
 
 namespace IPK24Chat;
@@ -54,9 +55,9 @@ class Program
                 }
                 else if (transportProtocol == "udp")
                 {
-                    // UdpChatClient udpClient = new UdpChatClient();
-                    // udpClient.Connect(serverAddress, serverPort, udpConfirmationTimeout, udpRetryCount);
-                    // ... (UDP client logic)
+                    UdpClient udpClient = new UdpClient();
+                    UdpChatClient udpChatClient = new UdpChatClient(serverAddress, serverPort, udpConfirmationTimeout, udpRetryCount, udpClient);
+                    udpChatClient.StartInteractiveSession();
                 }
                 else
                 {
