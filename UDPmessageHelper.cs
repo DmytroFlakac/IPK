@@ -25,21 +25,21 @@ namespace IPK24Chat
 
             byte[] result = new byte[1 + 2 + messageBytes.Length];
             result[0] = messageTypeBytes[0];
-            Buffer.BlockCopy(messageIDBytes, 0, result, 1, 2);
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
             Buffer.BlockCopy(messageBytes, 0, result, 3, messageBytes.Length);
 
             return result;
         }
 
-        public static byte[] buildMessage(string channelID, int messageID, MessageType messageType = MessageType.JOIN)
+        public static byte[] buildMessage(string channelID, int messageID, string displayName, MessageType messageType = MessageType.JOIN)
         {
-            byte[] messageBytes = Encoding.UTF8.GetBytes(channelID);
+            byte[] messageBytes = Encoding.UTF8.GetBytes($"{channelID}\0{displayName}\0");
             byte[] messageTypeBytes = new byte[] { (byte)messageType };
             byte[] messageIDBytes = BitConverter.GetBytes((UInt16)messageID);
 
             byte[] result = new byte[1 + 2 + messageBytes.Length];
             result[0] = messageTypeBytes[0];
-            Buffer.BlockCopy(messageIDBytes, 0, result, 1, 2);
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
             Buffer.BlockCopy(messageBytes, 0, result, 3, messageBytes.Length);
 
             return result;
@@ -52,7 +52,7 @@ namespace IPK24Chat
 
             byte[] result = new byte[1 + 2];
             result[0] = messageTypeBytes[0];
-            Buffer.BlockCopy(messageIDBytes, 0, result, 1, 2);
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
 
             return result;
         }
@@ -65,24 +65,51 @@ namespace IPK24Chat
 
             byte[] result = new byte[1 + 2 + messageBytes.Length];
             result[0] = messageTypeBytes[0];
-            Buffer.BlockCopy(messageIDBytes, 0, result, 1, 2);
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
             Buffer.BlockCopy(messageBytes, 0, result, 3, messageBytes.Length);
 
             return result;
         }
 
+        public static byte[] buildBYEMessage(int messageID, MessageType messageType = MessageType.BYE)
+        {
+            byte[] messageTypeBytes = new byte[] { (byte)messageType };
+            byte[] messageIDBytes = BitConverter.GetBytes((UInt16)messageID);
+
+            byte[] result = new byte[1 + 2];
+            result[0] = messageTypeBytes[0];
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
+
+            return result;
+        }
+
+        public static byte[] buildErrorMessage(int messageID, string errorMessage, string displayName, MessageType messageType = MessageType.ERR)
+        {
+            byte[] messageBytes = Encoding.UTF8.GetBytes($"{displayName}\0{errorMessage}\0");
+            byte[] messageTypeBytes = new byte[] { (byte)messageType };
+            byte[] messageIDBytes = BitConverter.GetBytes((UInt16)messageID);
+
+            byte[] result = new byte[1 + 2 + messageBytes.Length];
+            result[0] = messageTypeBytes[0];
+            Buffer.BlockCopy(messageIDBytes, 0, result, 2, 1);
+            Buffer.BlockCopy(messageBytes, 0, result, 3, messageBytes.Length);
+
+            return result;
+        }
+        
+
         public static int getMessageID(byte[] message)
         {
-            byte[] messageIDBytes = new byte[2];
-            Buffer.BlockCopy(message, 1, messageIDBytes, 0, 2);
-            return BitConverter.ToUInt16(messageIDBytes, 0);
+            if (message.Length < 3) throw new ArgumentException("Message too short to contain a MessageID.");
+            int messageId = (message[1] << 8) | message[2];
+            return messageId;
         }
 
         public static int getRefMessageID(byte[] message)
         {
-            byte[] messageIDBytes = new byte[2];
-            Buffer.BlockCopy(message, 4, messageIDBytes, 0, 2);
-            return BitConverter.ToUInt16(messageIDBytes, 0);
+            if (message.Length < 6) throw new ArgumentException("Message too short to contain a RefMessageID.");
+            int refMessageId = (message[4] << 8) | message[5];
+            return refMessageId;
         }
 
         public static int getReplyResult(byte[] message)
@@ -142,5 +169,12 @@ namespace IPK24Chat
             Console.WriteLine($"Message ID: {getMessageID(message)}");
         }
         
+        public static void printMessage(byte[] message, string displayName)
+        {
+            Console.WriteLine($"Message type: {getMessageType(message)}");
+            Console.WriteLine($"Message ID: {getMessageID(message)}");
+            Console.WriteLine($"Display name: {displayName}");
+            Console.WriteLine($"Message contents: {getMSGContents(message)}");
+        }
     }
 }

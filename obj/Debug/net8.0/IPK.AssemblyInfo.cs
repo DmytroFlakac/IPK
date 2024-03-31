@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ipk24chat-client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5f4213a45c5b5daf12a9b75289301f64485d8a73")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8a940fa2ab0f1ad0b548e6cb9009b19477c24407")]
 [assembly: System.Reflection.AssemblyProductAttribute("ipk24chat-client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ipk24chat-client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

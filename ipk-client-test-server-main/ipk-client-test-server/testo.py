@@ -362,6 +362,7 @@ def udp_auth_nok_ok(tester):
 
     # Expect the auth message to be received by the server
     message = tester.receive_message()
+    print(message)
     assert (
         message == b"\x02\x00\x01a\x00c\x00b\x00"
     ), "Incoming message does not match expected AUTH message."
@@ -419,6 +420,7 @@ def udp_auth_port_change(tester):
 
     # Check the output, should contain "Success: jojo"
     stderr = tester.get_stderr()
+    print(stderr)
     assert any(
         ["Success: jojo" in line for line in stderr.split("\n")]
     ), "Output does not match expected 'Success: jojo' output."
@@ -479,6 +481,7 @@ def udp_msg(tester):
 
     # Expect the message to be received by the server
     message = tester.receive_message()
+    print(message)
     assert (
         message == b"\x04\x00\x01c\x00ahojky\x00"
     ), "Incoming message does not match expected MSG message."
@@ -610,6 +613,7 @@ def udp_server_err2(tester):
 
     # Should receive BYE for the ERROR message
     message = tester.receive_message()
+    print(message)
     assert (
         message == b"\xff\x00\x01"
     ), "Incoming message does not match expected BYE message."
@@ -625,7 +629,6 @@ def udp_join_ok(tester):
 
     # Expect the join message to be received by the server
     message = tester.receive_message()
-
     assert (
         message == b"\x03\x00\x01channel\x00user\x00"
     ), "Incoming message does not match expected JOIN message."
@@ -640,6 +643,7 @@ def udp_join_ok(tester):
 
     # Check the output, should contain "Success: jojo"
     stderr = tester.get_stderr()
+    print(stderr)
     assert any(
         ["Success: jojo" in line for line in stderr.split("\n")]
     ), "Output does not match expected 'Success: jojo' output."
@@ -710,12 +714,14 @@ def udp_invalid_msg(tester):
 
     # Check the output, should contain "ERR: "
     stderr = tester.get_stderr()
+    print(stderr)
     assert any(
         ["ERR: " in line for line in stderr.split("\n")]
     ), "Output does not match expected 'ERR: ' output."
 
     # Should receive ERR for the invalid message
     message = tester.receive_message()
+    print(message)
     assert (
         b"\xfe\x00\x01c\x00" in message
     ), "Incoming message does not match expected ERR message."

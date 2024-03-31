@@ -33,7 +33,8 @@ namespace IPK24Chat
                 
                 if (bytesRead == 0)
                 {
-                    Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
+                    // Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
+                    Disconnect();
                     break;
                 }
                 string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
@@ -53,15 +54,6 @@ namespace IPK24Chat
             {
                 client = new TcpClient();
                 client.Connect(serverAddress, serverPort);
-                // if (!client.Connected)
-                // {
-                //     Console.Error.WriteLine("ERR: Unable to connect to server.");
-                //     Environment.Exit(1);
-                // }
-                // else
-                // {
-                //     Console.WriteLine($"Connected to server at {serverAddress}:{serverPort}");
-                // }
                 stream = client.GetStream();
             }
             catch (Exception e)
@@ -79,11 +71,6 @@ namespace IPK24Chat
                 {
                     Console.Error.WriteLine("ERR: Client is null");
                 }
-
-                // if (!client.Connected)
-                // {
-                //     Console.Error.WriteLine("ERR: Client is not connected");
-                // }
 
                 if (stream == null)
                 {
@@ -113,20 +100,6 @@ namespace IPK24Chat
 
         public void StartInteractiveSession()
         {
-            // Console.CancelKeyPress += (sender, e) => {
-            //     e.Cancel = true; // Prevents the program from terminating.
-            //     Disconnect();
-            // };
-
-            // if (!client.Connected)
-            // {
-            //     Console.Error.WriteLine("ERR: Unable to connect to server.");
-            //     Environment.Exit(1);
-            // }
-            // else
-            // {
-            //     Console.WriteLine($"Connected to server at");
-            // }
 
             while (true) 
             {
@@ -146,22 +119,6 @@ namespace IPK24Chat
                     Disconnect();
                     Environment.Exit(0);
                 }
-
-                // if (input == "EOF"){
-                //     Disconnect();
-                //     Environment.Exit(0);
-                // }
-
-                // if (!client.Connected)
-                // {
-                //     Console.Error.WriteLine("ERR: Unable to connect to server.");
-                //     Environment.Exit(1);
-                // }
-                // else
-                // {
-                //     Console.WriteLine($"Connected to server at");
-                // }
-
                 if (input.StartsWith("/"))
                 {
                     ProcessCommand(input, cts);
@@ -181,7 +138,7 @@ namespace IPK24Chat
                     // else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
                     else if (input.Length > 1400)
                     {
-                        Console.WriteLine(input);
+                        // Console.WriteLine(input);
                         Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
                         continue;
                     }
@@ -203,7 +160,6 @@ namespace IPK24Chat
                 case "/auth":
                     if (parts.Length != 4)
                     {
-                        Console.WriteLine(parts.Length);
                         Console.Error.WriteLine("ERR: Incorrect /auth usage. Expected /auth {Username} {Secret} {DisplayName}");
                         return;
                     }
@@ -212,25 +168,7 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
-                    // if (!client.Connected)
-                    // {
-                    //     Console.Error.WriteLine("ERR: Unable to connect to server before cts.");
-                    //     Environment.Exit(1);
-                    // }
-                    // else
-                    // {
-                    //     Console.WriteLine($"Connected to server at before cts");
-                    // }    
-                    cts.Cancel(); 
-                    // if (!client.Connected)
-                    // {
-                    //     Console.Error.WriteLine("ERR: Unable to connect to server after cts.");
-                    //     Environment.Exit(1);
-                    // }
-                    // else
-                    // {
-                    //     Console.WriteLine($"Connected to server at after cts");
-                    // }               
+                    cts.Cancel();           
                     HandleAuth(parts[1], parts[2], parts[3]);
                     break;
                 case "/join":
@@ -275,16 +213,7 @@ namespace IPK24Chat
             {
                 Console.Error.WriteLine("ERR: Invalid input. Username, secret and display name must be alphanumeric and have a maximum length of 20, 128 and 20 characters respectively.");
                 return;
-            }
-            // if (!client.Connected)
-            // {
-            //     Console.Error.WriteLine("ERR: Unable to connect to server send.");
-            //     Environment.Exit(1);
-            // }
-            // else
-            // {
-            //     Console.WriteLine($"Connected to server at send");
-            // }    
+            }  
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
             displayName = newName; 
             Thread.Sleep(300);
@@ -292,17 +221,11 @@ namespace IPK24Chat
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
             string trimMessage = message.TrimEnd('\r', '\n');
-            ProcessServerReply(trimMessage);   
-            // Console.WriteLine("Auth done");   
+            ProcessServerReply(trimMessage);     
         }
 
         private void HandleJoin(string channelId)
         {
-            // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
-            // {
-            //     Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
-            //     return;
-            // }
             if (channelId.Length > 20)
             {
                 Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
@@ -321,15 +244,12 @@ namespace IPK24Chat
             switch (reply)
             {
                 case string r when r.StartsWith("REPLY OK IS"):
-                    // Console.WriteLine("Reply OK IS:");
                     Console.Error.WriteLine("Success:" + r.Substring("REPLY OK IS".Length));
                     autorized = true;
                     break;
 
                 case string r when r.StartsWith("REPLY NOK IS"):
-                    // Console.WriteLine("Reply NOK IS:");
                     Console.Error.WriteLine("Failure:" + r.Substring("REPLY NOK IS".Length));
-                    // Console.WriteLine("Reply NOK IS:");
                     break;
 
                 case string r when r.StartsWith("ERR FROM"):
@@ -340,7 +260,6 @@ namespace IPK24Chat
                     break;
 
                 case string r when r.StartsWith("MSG FROM") && r.Contains("IS"):
-                    // Console.WriteLine("MSG FROM:");
                     int fromIndex = r.IndexOf("FROM") + 5;
                     int isIndex = r.IndexOf("IS", fromIndex);
                     string messageDisplayName = r.Substring(fromIndex, isIndex - fromIndex - 1);
@@ -363,8 +282,6 @@ namespace IPK24Chat
                     SendMessage($"ERR FROM {displayName} IS {reply}");
                     break;
             }
-
-            // Console.WriteLine("End of ProcessServerReply");
 
         }
 
