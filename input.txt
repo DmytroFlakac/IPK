@@ -7,3 +7,12 @@ world
 /join discord.verified-3
 Hello
 world
+Hello chat
+/join discord.verified-2
+Hello
+world
+/join discord.verified-3
+Hello
+world
+Hello chat
+Hello world

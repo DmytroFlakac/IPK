@@ -15,16 +15,11 @@ namespace IPK24Chat
         
         private string baseRegex = @"^[A-Za-z0-9-]+$";
 
-        // public TcpChatClient(TcpClient client, NetworkStream stream)
-        // {
-        //     this.client = client;
-        //     this.stream = stream;
-        // }
-        
-        
+        private string displayRegex = @"^[!-~]{1,20}$";
+
+        private string messageRegex = @"^[\r\n -~]{1,1400}$";
         private async Task ListenForServer(CancellationToken token)
         {
-            // NetworkStream stream = client.GetStream();
             byte[] buffer = new byte[1024];
 
             while (!token.IsCancellationRequested)
@@ -33,12 +28,10 @@ namespace IPK24Chat
                 
                 if (bytesRead == 0)
                 {
-                    // Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
                     Disconnect();
                     break;
                 }
                 string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                // ProcessServerReply(message);  
                 foreach (string line in message.Split("\r\n", StringSplitOptions.RemoveEmptyEntries))
                 {
 
@@ -93,61 +86,81 @@ namespace IPK24Chat
 
         public void Disconnect()
         {
-            SendMessage("BYE");
-            stream.Close();
-            client.Close();
+            try
+            {      
+                SendMessage("BYE");
+                stream.Close();
+                client.Close();
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"ERR: Unable to disconnect from server - {e.Message}");
+            }
+            finally
+            {
+                Environment.Exit(0);
+            }
         }
 
         public void StartInteractiveSession()
         {
 
-            while (true) 
-            {
-                CancellationTokenSource cts = new CancellationTokenSource();
-                Task listenTask = ListenForServer(cts.Token);
-                Console.CancelKeyPress += (sender, e) => {
-                    e.Cancel = true; // Prevents the program from terminating.
+            try{
+                while (true) 
+                {
+                    CancellationTokenSource cts = new CancellationTokenSource();
+                    Task listenTask = ListenForServer(cts.Token);
+                    Console.CancelKeyPress += (sender, e) => {
+                        e.Cancel = true; // Prevents the program from terminating.
+                        cts.Cancel();
+                        Thread.Sleep(300);
+                        Disconnect();
+                        Environment.Exit(0);
+                    };
+                    Thread.Sleep(100);
+                    string input = Console.ReadLine();
                     cts.Cancel();
-                    Thread.Sleep(300);
-                    Disconnect();
-                    Environment.Exit(0);
-                };
-                string input = Console.ReadLine();
 
-                if (string.IsNullOrEmpty(input))
-                {
-                    Disconnect();
-                    Environment.Exit(0);
-                }
-                if (input.StartsWith("/"))
-                {
-                    ProcessCommand(input, cts);
-                }
-                else
-                {
-                    if (displayName == null)
+                    if (string.IsNullOrEmpty(input))
                     {
-                        Console.Error.WriteLine("ERR: Display name not set. Use /auth or /rename to set a display name.");
-                        continue;
-                    }
-                    else if (!autorized)
-                    {
-                        Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
-                        continue;
-                    }
-                    // else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
-                    else if (input.Length > 1400)
-                    {
-                        // Console.WriteLine(input);
-                        Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
-                        continue;
+                        if(!cts.Token.IsCancellationRequested)
+                            cts.Cancel();
+                        Thread.Sleep(300);
+                        Disconnect();
                     }
 
-                    SendMessage($"MSG FROM {displayName} IS {input}");
-                    // string reply = ReceiveMessage();
-                    // ProcessServerReply(reply);
+
+                    if (input.StartsWith("/"))
+                    {
+                        ProcessCommand(input, cts);
+                    }
+                    else
+                    {
+                        if (displayName == null)
+                        {
+                            Console.Error.WriteLine("ERR: Display name not set. Use /auth or /rename to set a display name.");
+                            continue;
+                        }
+                        else if (!autorized)
+                        {
+                            Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
+                            continue;
+                        }
+                        // else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
+                        else if (input.Length > 1400)
+                        {
+                            Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
+                            continue;
+                        }
+
+                        SendMessage($"MSG FROM {displayName} IS {input}");
+                    }
                 }
-            }
+            }  
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"ERR: Unable to start interactive session - {e.Message}");
+            }  
         }
 
         private void ProcessCommand(string command, CancellationTokenSource cts)
@@ -168,7 +181,7 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
                     }
-                    cts.Cancel();           
+                    // cts.Cancel();           
                     HandleAuth(parts[1], parts[2], parts[3]);
                     break;
                 case "/join":
@@ -181,7 +194,7 @@ namespace IPK24Chat
                     {
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                     }
-                    cts.Cancel();
+                    // cts.Cancel();
                     HandleJoin(parts[1]);
                     break;
                 case "/rename":
@@ -194,8 +207,9 @@ namespace IPK24Chat
                     Console.WriteLine($"Display name changed to: {displayName}");
                     break;
                 case "/bye":
+                    // cts.Cancel();
+                    Thread.Sleep(300);
                     Disconnect();
-                    Environment.Exit(0);
                     break;
                 case "/help":
                     ShowHelp();
@@ -207,36 +221,60 @@ namespace IPK24Chat
         }
 
         private void HandleAuth(string username, string secret, string newName)
-        {
-            if(username.Length > 20 || secret.Length > 128 || newName.Length > 20 || 
-            !Regex.IsMatch(username, baseRegex) || !Regex.IsMatch(secret, baseRegex) || !Regex.IsMatch(newName, baseRegex))
-            {
-                Console.Error.WriteLine("ERR: Invalid input. Username, secret and display name must be alphanumeric and have a maximum length of 20, 128 and 20 characters respectively.");
-                return;
-            }  
+        {       
             SendMessage($"AUTH {username} AS {newName} USING {secret}");
+           if (!Regex.IsMatch(newName, displayRegex) || newName.Length > 20 || !Regex.IsMatch(secret, baseRegex) 
+           || !Regex.IsMatch(username, baseRegex) || secret.Length > 120 || username.Length > 20)    
+            {
+
+                if (!Regex.IsMatch(newName, displayRegex) || newName.Length > 20)
+                {
+                    if (newName.Length > 20)
+                        Console.Error.WriteLine("ERR: 20 characters.");
+                    else
+                        Console.Error.WriteLine("ERR: alpha.");
+                    // Console.Error.WriteLine("ERR: Invalid input. Display name must be alphanumeric and have a maximum length of 20 characters.");
+                }
+                if (!Regex.IsMatch(secret, baseRegex) || secret.Length > 120)
+                {
+                    Console.Error.WriteLine("ERR: Invalid input. Secret must be alphanumeric and have a maximum length of 120 characters.");
+                }
+                if (!Regex.IsMatch(username, baseRegex) || username.Length > 20)
+                {
+                    Console.Error.WriteLine("ERR: Invalid input. Username must be alphanumeric and have a maximum length of 20 characters.");
+                }
+                Console.Error.WriteLine("ERR: Invalid input. Display name must be alphanumeric and have a maximum length of 20 characters. Secret must be alphanumeric and have a maximum length of 120 characters. Username must be alphanumeric and have a maximum length of 20 characters.");
+                return;
+            }
             displayName = newName; 
             Thread.Sleep(300);
             byte[] buffer = new byte[1024];          
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            string trimMessage = message.TrimEnd('\r', '\n');
-            ProcessServerReply(trimMessage);     
+            string trimMessage = message.TrimEnd('\r', '\n');    
+            ProcessServerReply(trimMessage);
+               
         }
 
         private void HandleJoin(string channelId)
         {
-            if (channelId.Length > 20)
-            {
-                Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
-                return;
-            }
             SendMessage($"JOIN {channelId} AS {displayName}");
+            // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
+            // {
+            //     Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
+            //     return;
+            // }
             Thread.Sleep(300);
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            Console.WriteLine(message);
             ProcessServerReply(message);
+            bytesRead = stream.Read(buffer, 0, buffer.Length);
+            message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            ProcessServerReply(message); 
+            
+            
         }
 
         private void ProcessServerReply(string reply)
@@ -255,6 +293,11 @@ namespace IPK24Chat
                 case string r when r.StartsWith("ERR FROM"):
                     string errDisplayName = r.Substring("ERR FROM".Length, r.IndexOf("IS") - "ERR FROM".Length - 1);
                     string errMessage = r.Substring(r.IndexOf("IS") + 3);
+                    UDPmessageHelper.printMessage(Encoding.ASCII.GetBytes(r));
+                    if (!Regex.IsMatch(errDisplayName, displayRegex) || !Regex.IsMatch(errMessage, messageRegex))
+                    {
+                        Console.Error.WriteLine("ERR: Display name too long. Max length is 20 characters.");
+                    }
                     Console.Error.WriteLine($"ERR FROM{errDisplayName}: {errMessage}");
                     Disconnect();
                     break;
@@ -264,22 +307,25 @@ namespace IPK24Chat
                     int isIndex = r.IndexOf("IS", fromIndex);
                     string messageDisplayName = r.Substring(fromIndex, isIndex - fromIndex - 1);
                     string messageContent = r.Substring(isIndex + 3);
-                    if (messageContent.Length > 1400)
+                    if (!Regex.IsMatch(messageDisplayName, displayRegex) || !Regex.IsMatch(messageContent, messageRegex))
                     {
-                        Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters.");
-                        return;
+                        string errmessage = $"ERR FROM {displayName} IS {messageContent}";
+                        SendMessage(errmessage);
+                        Console.Error.WriteLine("ERR: Display name too long. Max length is 20 characters.");
+                        Disconnect();
                     }
-                    Console.WriteLine($"{messageDisplayName}: {messageContent}");
+                    else
+                        Console.WriteLine($"{messageDisplayName}: {messageContent}");
                     break;
 
-                case string r when r.Contains("BYE"):
-                    
+                case string r when r.Contains("BYE"):                   
                     Disconnect();
                     break;
 
                 default:
                     Console.Error.WriteLine("ERR: Unknown server reply.");
-                    SendMessage($"ERR FROM {displayName} IS {reply}");
+                    SendMessage($"ERR FROM {displayName} IS Unknown server reply.");
+                    Disconnect();
                     break;
             }
 
