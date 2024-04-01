@@ -56,9 +56,7 @@ Compared to a standard chat application like IRC, IPK24-CHAT offers a simpler in
 - **UDP Retransmission**: Beyond the basic UDP send-receive, this application implements a retry mechanism to ensure message delivery.
 - **Command-Line Flexibility**: Enhanced parsing logic allows for dynamic command-line configuration, adapting to various network settings.
 
-## Bibliography
-- Tanenbaum, A. S., & Wetherall, D. J. (2011). Computer Networks. Prentice Hall.
-- Microsoft .NET Documentation for `System.CommandLine` and `System.Net.Sockets`.
+
 
 ## Usage
 
@@ -123,7 +121,6 @@ Choosing the AGPL-3.0 license aims to foster extensive participation and use, en
 - **Unique Features**: Introduces UDP message retransmission and adaptive command-line configurations, enhancing usability and reliability.
 - **Comprehensive Documentation**: Features detailed sections on theoretical background, system architecture, and practical usage, complete with UML diagrams and code insights.
 
-### Getting Started
-
-### Prerequisites
-- .NET SDK (version specified in documentation)
+## Bibliography
+- Tanenbaum, A. S., & Wetherall, D. J. (2011). Computer Networks. Prentice Hall.
+- Microsoft .NET Documentation for `System.CommandLine` and `System.Net.Sockets`.
