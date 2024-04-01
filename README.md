@@ -97,19 +97,22 @@ The IPK24-CHAT Client is open-source software licensed under the MIT License. Th
 
 For detailed license terms, please refer to the [LICENSE](./LICENSE) file included with this project.
 
-### Key Points of the MIT License:
+### Key Points of the GPL-3.0 License:
 
-- **Permission** is granted to anyone to use, copy, modify, and distribute this software and its documentation for any purpose, subject to the following conditions:
-  - The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+- **Freedom** is ensured for all to use, study, share, and modify the software, adhering to the principles of copyleft under the following conditions:
+  - Modifications and derived works must also be licensed under GPL-3.0, ensuring future users have the same freedoms.
+  - Any distribution, including modified versions, must include the original GPL-3.0 license, any applicable notices, and make the source code accessible.
+  - THE SOFTWARE IS DISTRIBUTED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, ensuring users understand it is provided without guarantees.
+
 
 ### Contributions
 
-Your contributions are welcome under the same license. By contributing to this project, you agree to abide by its terms and conditions.
+We warmly welcome your contributions, which will be accepted under the same GPL-3.0 license. By participating in this project, you consent to respect and follow its guidelines and stipulations.
 
 ### More Information
 
-This licensing choice encourages a wide use and participation in the project, ensuring that the IPK24-CHAT Client remains free and accessible for a broad user base. For the full license text and any inquiries regarding the licensing, please refer to the LICENSE file.
+Opting for the GPL-3.0 license promotes widespread engagement and utilization, guaranteeing that the IPK24-CHAT Client stays freely available to a diverse audience. For comprehensive details of the license and for any questions concerning its application, please consult the [LICENSE](./LICENSE) file included in the project repository.
+
 
 ## Client Documentation Summary
 
