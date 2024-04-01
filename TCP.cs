@@ -293,7 +293,7 @@ namespace IPK24Chat
                 case string r when r.StartsWith("ERR FROM"):
                     string errDisplayName = r.Substring("ERR FROM".Length, r.IndexOf("IS") - "ERR FROM".Length - 1);
                     string errMessage = r.Substring(r.IndexOf("IS") + 3);
-                    UDPmessageHelper.printMessage(Encoding.ASCII.GetBytes(r));
+                   
                     if (!Regex.IsMatch(errDisplayName, displayRegex) || !Regex.IsMatch(errMessage, messageRegex))
                     {
                         Console.Error.WriteLine("ERR: Display name too long. Max length is 20 characters.");

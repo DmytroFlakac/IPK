@@ -15,8 +15,8 @@ namespace IPK24Chat
         private bool autorized = false;
         private int messageID = -1;
         private string displayRegex = @"^[!-~]{1,20}$";
-        private string messageRegex = @"^[ -~]{1,1400}$";
-        private static string baseRegex = @"^[a-zA-Z0-9\s]*$";
+        private string messageRegex =  @"^[\r\n -~]{1,1400}$";
+        private static string baseRegex = @"^[a-zA-Z0-9-]+$";
         
 
         public UdpChatClient(string serverAddress, int serverPort, int udpConfirmationTimeout, int udpRetryCount, UdpClient client)
@@ -73,8 +73,6 @@ namespace IPK24Chat
                             Disconnect();
                         }
                         Console.Error.WriteLine($"ERR FROM {displayname}: {msg}");
-                        if(cts.IsCancellationRequested)
-                            cts.ThrowIfCancellationRequested();
                         Disconnect();
                     } 
                     else if(messageType == MessageType.BYE)
@@ -82,7 +80,8 @@ namespace IPK24Chat
                         sendConfirmation(messageID);
                         if(cts.IsCancellationRequested)
                             cts.ThrowIfCancellationRequested();
-                        Disconnect();
+                        client.Close();
+                        Environment.Exit(0);
                     } 
                     else if(messageType == MessageType.CONFIRM)
                     {
@@ -92,27 +91,25 @@ namespace IPK24Chat
                     {
                         sendConfirmation(messageID);
                         Console.Error.WriteLine("ERR: Unexpected message type.");
-                        UDPmessageHelper.printMessage(message);
                         byte[] errorMessage = UDPmessageHelper.buildErrorMessage(messageID, "Unexpected message type.", displayName, MessageType.ERR);
                         ++messageID;
                         client.Send(errorMessage, errorMessage.Length, serverEndpoint);
                         waitConfirmation(errorMessage);
-                        if(cts.IsCancellationRequested)
-                            cts.ThrowIfCancellationRequested();
                         Disconnect();
                     }     
                 }
             }
             catch (SocketException e)
             {
-                Console.Error.WriteLine($"SocketException: {e.Message}");
+                Console.Error.WriteLine($"ERR: {e.Message}");
             }
         }
 
         public void StartInteractiveSession()
         {
-            Console.CancelKeyPress += (sender, e) => {     
-                    Disconnect();           
+            Console.CancelKeyPress += (sender, e) => {           
+                    Disconnect();  
+                    e.Cancel = true;          
                 };
             while (true)
             {
@@ -122,11 +119,8 @@ namespace IPK24Chat
                 string input = Console.ReadLine();
                 cts.Cancel();
 
-                Console.WriteLine("Input: " + input);
-
                 if (string.IsNullOrEmpty(input))
                 {
-                    Console.WriteLine("Disconnecting from server empty input.");
                     if(!cts.IsCancellationRequested)
                         cts.Token.ThrowIfCancellationRequested();
                     Disconnect();
@@ -148,7 +142,7 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                         continue;
                     }
-                    else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
+                    else if (input.Length > 1400 || !Regex.IsMatch(input, messageRegex))
                     {
                         Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
                         continue;
@@ -239,6 +233,8 @@ namespace IPK24Chat
             if(!Regex.IsMatch(displayName, displayRegex) || !Regex.IsMatch(username, baseRegex) 
             || !Regex.IsMatch(secret, baseRegex) || secret.Length > 120 || username.Length > 20)
             {
+                if(!Regex.IsMatch(secret, baseRegex))
+                    Console.Error.WriteLine("ERR: Secret must be alphanumeric and between 1 and 120 characters.");
                 Console.Error.WriteLine("ERR: Display name must be alphanumeric and between 1 and 20 characters or username and secret must be alphanumeric.");
             }
             ++messageID;
@@ -329,6 +325,8 @@ namespace IPK24Chat
                     sendConfirmation(responseID);
                     if(UDPmessageHelper.getMessageType(response) != MessageType.REPLY)
                     {
+                        if(UDPmessageHelper.getMessageType(response) == MessageType.CONFIRM)
+                            continue;
                         string message = UDPmessageHelper.getMSGContents(response);
                         string displayname = UDPmessageHelper.getMSGdisplayName(response);
                         if(!Regex.IsMatch(message, messageRegex) || !Regex.IsMatch(displayname, displayRegex))

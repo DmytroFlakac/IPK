@@ -762,6 +762,7 @@ def udp_server_err2(tester):
 
     # Should receive BYE for the ERROR message
     message = tester.receive_message_and_confirm_udp()
+    print(message)
     assert (
         message == b"\xff\x00\x01"
     ), "Incoming message does not match expected BYE message."
