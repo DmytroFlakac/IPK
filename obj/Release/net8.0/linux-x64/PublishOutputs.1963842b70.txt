@@ -1,2 +1,0 @@
-/home/xovsia00/IPK_Dima/IPK/bin/Release/net8.0/linux-x64/publish/ipk24chat-client.pdb
-/home/xovsia00/IPK_Dima/IPK/bin/Release/net8.0/linux-x64/publish/ipk24chat-client

@@ -1,6 +1,0 @@
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.csproj.AssemblyReference.cache
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.AssemblyInfoInputs.cache
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.AssemblyInfo.cs
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.csproj.CoreCompileInputs.cache
-C:\Users\Home\Documents\GitHub\IPK\obj\Release\net5.0\IPK.sourcelink.json
