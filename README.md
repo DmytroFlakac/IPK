@@ -97,21 +97,21 @@ The IPK24-CHAT Client is open-source software licensed under the MIT License. Th
 
 For detailed license terms, please refer to the [LICENSE](./LICENSE) file included with this project.
 
-### Key Points of the GPL-3.0 License:
+### Key Points of the AGPL-3.0 License:
 
-- **Freedom** is ensured for all to use, study, share, and modify the software, adhering to the principles of copyleft under the following conditions:
-  - Modifications and derived works must also be licensed under GPL-3.0, ensuring future users have the same freedoms.
-  - Any distribution, including modified versions, must include the original GPL-3.0 license, any applicable notices, and make the source code accessible.
-  - THE SOFTWARE IS DISTRIBUTED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, ensuring users understand it is provided without guarantees.
-
+- **Network Use is Distribution**: The AGPL-3.0 extends the GPL-3.0 by treating the network use of software as equivalent to distribution. This means that if you run AGPL-licensed software on a server and others interact with it remotely, you are required to offer the source code to those users under the AGPL-3.0 terms.
+  - This ensures that modifications made to software used over a network remain open and accessible, reinforcing the freedom and rights of end users.
+  - All distributed versions, either modified or original, must include the AGPL-3.0 license notice, relevant notices, and make the source code available to users.
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, clarifying that it comes with no guarantees.
 
 ### Contributions
 
-We warmly welcome your contributions, which will be accepted under the same GPL-3.0 license. By participating in this project, you consent to respect and follow its guidelines and stipulations.
+Contributions to this project are highly encouraged and will be accepted under the AGPL-3.0 license. By contributing, you agree to comply with the project's terms and conditions.
 
 ### More Information
 
-Opting for the GPL-3.0 license promotes widespread engagement and utilization, guaranteeing that the IPK24-CHAT Client stays freely available to a diverse audience. For comprehensive details of the license and for any questions concerning its application, please consult the [LICENSE](./LICENSE) file included in the project repository.
+Choosing the AGPL-3.0 license aims to foster extensive participation and use, ensuring that the IPK24-CHAT Client remains freely available and open for a wide user base. For the full license text and queries regarding the licensing, please see the [LICENSE](./LICENSE) file in the project repository.
+
 
 
 ## Client Documentation Summary
