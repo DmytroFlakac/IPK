@@ -27,7 +27,7 @@ To understand the IPK24-CHAT client, familiarity with the following concepts is 
 
 ## Architecture and Design
 ### UML Diagrams
-![Mermaid Diagram](https://www.mermaidchart.com/raw/a3012c7c-990d-45fc-850c-e47d76e7742a?theme=dark&version=v0.1&format=svg)
+![Mermaid Diagram](https://www.mermaidchart.com/raw/92699b87-3e93-40a2-9b16-b88669be3246?theme=dark&version=v0.1&format=svg)
 
 ### Interesting Code Sections
 - **Argument Parsing**: `argumentParsing.cs` utilizes the `System.CommandLine` library for command-line argument handling.
