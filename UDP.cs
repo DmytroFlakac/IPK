@@ -147,7 +147,6 @@ namespace IPK24Chat
                         Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
                         continue;
                     }
-                    // cts.Cancel();
                     HandleMessage(input);
                 }
             }
@@ -249,11 +248,11 @@ namespace IPK24Chat
 
         private void HandleJoin(string channelID)
         {
-            // if(!Regex.IsMatch(channelID, baseRegex) || channelID.Length > 20)
-            // {
-            //     Console.Error.WriteLine("ERR: Channel ID must be alphanumeric and between 1 and 20 characters.");
-            //     return;
-            // }
+            if(!Regex.IsMatch(channelID, baseRegex) || channelID.Length > 20)
+            {
+                Console.Error.WriteLine("ERR: Channel ID must be alphanumeric and between 1 and 20 characters.");
+                return;
+            }
             ++messageID;
             byte[] messageBytes = UDPmessageHelper.buildMessage(channelID, messageID, displayName, MessageType.JOIN);
             client.Send(messageBytes, messageBytes.Length, serverAddress, serverPort);
@@ -304,7 +303,6 @@ namespace IPK24Chat
                 {
                     if (e.SocketErrorCode == SocketError.TimedOut)
                     {
-                        // Console.WriteLine("Timeout: Server did not reply.");
                         continue;
                     }
                 }
@@ -365,7 +363,6 @@ namespace IPK24Chat
                 {
                     if (e.SocketErrorCode == SocketError.TimedOut)
                     {
-                        // Console.WriteLine("Timeout: Server did not reply.");
                         continue;
                     }
                 }

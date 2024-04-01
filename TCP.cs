@@ -145,8 +145,7 @@ namespace IPK24Chat
                             Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                             continue;
                         }
-                        // else if (input.Length > 1400 || !Regex.IsMatch(input, baseRegex))
-                        else if (input.Length > 1400)
+                        else if (!Regex.IsMatch(input, messageRegex))
                         {
                             Console.Error.WriteLine("ERR: Message too long. Max length is 1400 characters. Message must be alphanumeric");
                             continue;
@@ -179,8 +178,7 @@ namespace IPK24Chat
                     {
                         Console.Error.WriteLine("ERR: Already authorized. Use /rename to change display name.");
                         return;
-                    }
-                    // cts.Cancel();           
+                    }     
                     HandleAuth(parts[1], parts[2], parts[3]);
                     break;
                 case "/join":
@@ -193,7 +191,6 @@ namespace IPK24Chat
                     {
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
                     }
-                    // cts.Cancel();
                     HandleJoin(parts[1]);
                     break;
                 case "/rename":
@@ -206,8 +203,6 @@ namespace IPK24Chat
                     Console.WriteLine($"Display name changed to: {displayName}".Trim());
                     break;
                 case "/bye":
-                    // cts.Cancel();
-                    Thread.Sleep(300);
                     Disconnect();
                     break;
                 case "/help":
@@ -258,11 +253,11 @@ namespace IPK24Chat
         private void HandleJoin(string channelId)
         {
             SendMessage($"JOIN {channelId} AS {displayName}");
-            // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
-            // {
-            //     Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
-            //     return;
-            // }
+            if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
+            {
+                Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
+                return;
+            }
             Thread.Sleep(300);
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
@@ -281,12 +276,12 @@ namespace IPK24Chat
             switch (reply)
             {
                 case string r when r.ToUpper().StartsWith("REPLY OK IS"):
-                    Console.Error.WriteLine("Success:" + r.Substring("REPLY OK IS".Length).Trim());
+                    Console.Error.WriteLine("Success: " + r.Substring("REPLY OK IS".Length).Trim());
                     autorized = true;
                     break;
 
                 case string r when r.ToUpper().StartsWith("REPLY NOK IS"):
-                    Console.Error.WriteLine("Failure:" + r.Substring("REPLY NOK IS".Length).Trim());
+                    Console.Error.WriteLine("Failure: " + r.Substring("REPLY NOK IS".Length).Trim());
                     break;
 
                 case string r when r.ToUpper().StartsWith("ERR FROM"):
