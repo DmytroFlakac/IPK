@@ -110,7 +110,7 @@ namespace IPK24Chat
                     CancellationTokenSource cts = new CancellationTokenSource();
                     Task listenTask = ListenForServer(cts.Token);
                     Console.CancelKeyPress += (sender, e) => {
-                        e.Cancel = true; // Prevents the program from terminating.
+                        e.Cancel = true; 
                         cts.Cancel();
                         Thread.Sleep(300);
                         Disconnect();
@@ -318,6 +318,7 @@ namespace IPK24Chat
 
                 default:
                     Console.Error.WriteLine("ERR: Unknown server reply.");
+                    Console.Error.WriteLine(reply);
                     SendMessage($"ERR FROM {displayName} IS Unknown server reply.");
                     Disconnect();
                     break;
