@@ -245,8 +245,11 @@ namespace IPK24Chat
             byte[] buffer = new byte[1024];          
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            string trimMessage = message.TrimEnd('\r', '\n');    
-            ProcessServerReply(trimMessage);
+            string trimMessage = message.TrimEnd('\r', '\n'); 
+            foreach (string line in trimMessage.Split("\r\n", StringSplitOptions.RemoveEmptyEntries))
+            {
+                ProcessServerReply(line);
+            }
                
         }
 
@@ -262,7 +265,6 @@ namespace IPK24Chat
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            // Console.WriteLine(message);
             ProcessServerReply(message);
             bytesRead = stream.Read(buffer, 0, buffer.Length);
             message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
