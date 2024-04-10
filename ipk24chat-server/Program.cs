@@ -1,5 +1,8 @@
-﻿using System.CommandLine;
+﻿using System;
+using System.Collections.Generic;
+using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
+using System.Threading.Tasks;
 
 namespace Server;
 
@@ -77,9 +80,8 @@ class Program
                 return;
             }
 
-            List<IUser> users = new List<IUser>();
+            var users = new Dictionary<string, List<User>>();
             TcpServer tcpServer = new TcpServer(listenIp, listenPort, users);
-            Console.WriteLine($"Starting server on {listenIp}:{listenPort}");
             var tcpServerTask = tcpServer.Start();
     
             // Now that the lambda is marked as async, await can be used.

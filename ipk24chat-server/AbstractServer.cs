@@ -1,5 +1,8 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Server
 {
@@ -7,14 +10,19 @@ namespace Server
     {
         protected string Host;
         protected int Port;
-        protected List<IUser> Users;
+        protected Dictionary<string, List<User>> Channels = new Dictionary<string, List<User>>();
+
+        protected string ChannelId = "default";
         
-        protected AbstractServer(string host, int port, List<IUser> users)
+        protected AbstractServer(string host, int port, Dictionary<string, List<User>> channels, string channelId = "default")
         {
             Host = host;
             Port = port;
-            Users = users ?? throw new ArgumentNullException(nameof(users), "Users list cannot be null.");
+            Channels = channels ?? throw new ArgumentNullException(nameof(channels), "Channels list cannot be null.");
+            ChannelId = channelId;
         }
+        
+       
         
         public virtual Task Start()
         {

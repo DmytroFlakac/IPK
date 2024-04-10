@@ -1,6 +1,9 @@
-﻿using System.Net.Sockets;
+﻿using System.IO;
+using System.Net.Sockets;
 using System.Text;
 using System.Net;
+using System.Threading.Tasks;
+
 namespace Server;
 
 public class TcpUser : User
@@ -15,8 +18,6 @@ public class TcpUser : User
         Port = ((IPEndPoint)client.Client.RemoteEndPoint).Port;
         Host = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
     }
-    
-    public override string UserServerPort() => $"{Host}:{Port}";
     
     public override async Task<string?> ReadAsync() => await new StreamReader(_stream).ReadLineAsync();
     

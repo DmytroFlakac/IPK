@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Threading.Tasks;
 
 namespace Server
 {
@@ -12,6 +13,12 @@ namespace Server
         string Host { get; set; }
         int Port { get; set; }
         
+        // Regex
+        string BaseRegex { get; }
+        string DisplayRegex { get; }
+        string MessageRegex { get; set; }
+        string JoinRegex { get; set; }
+
         // Methods
         void SetDisplayName(string displayName);
         void SetUsername(string username);
