@@ -10,9 +10,10 @@ namespace Server
     {
         protected string Host;
         protected int Port;
-        protected Dictionary<string, List<User>> Channels = new Dictionary<string, List<User>>();
+        protected Dictionary<string, List<User>> Channels;
+        protected readonly object ClientsLock = new object();
 
-        protected string ChannelId = "default";
+        protected string ChannelId;
         
         protected AbstractServer(string host, int port, Dictionary<string, List<User>> channels, string channelId = "default")
         {
@@ -22,8 +23,6 @@ namespace Server
             ChannelId = channelId;
         }
         
-       
-        
         public virtual Task Start()
         {
             throw new NotImplementedException("Start not implemented");
@@ -32,34 +31,112 @@ namespace Server
         {
             throw new NotImplementedException("Stop not implemented");
         }
-        // public virtual void AcceptClients(object client)
+        
+        public virtual Task AcceptClientsAsync()
+        {
+            throw new NotImplementedException("AcceptClientsAsync not implemented");
+        }
+
+        // public virtual Task SendMessage(TcpClient client, string message)
         // {
-        //     throw new NotImplementedException("AcceptClients not implemented");
+        //     throw new NotImplementedException("SendTCPMessage not implemented");
         // }
+        //
+        // public virtual Task SendMessage(IPEndPoint endPoint, string message)
+        // {
+        //     throw new NotImplementedException("SendUDPMessage not implemented");
+        // }
+
+        // public virtual string ReceiveMessage(object client)
+        // {
+        //     throw new NotImplementedException("ReceiveMessage not implemented");
+        // }
+        //
         
-        public virtual void AcceptClients()
+        public virtual Task HandleClientAsync(User user)
         {
-            throw new NotImplementedException("AcceptClients not implemented");
-        }
-
-        public virtual Task SendMessage(TcpClient client, string message)
-        {
-            throw new NotImplementedException("SendTCPMessage not implemented");
-        }
-
-        public virtual Task SendMessage(IPEndPoint endPoint, string message)
-        {
-            throw new NotImplementedException("SendUDPMessage not implemented");
-        }
-
-        public virtual string ReceiveMessage(object client)
-        {
-            throw new NotImplementedException("ReceiveMessage not implemented");
+            throw new NotImplementedException("HandleClientAsync not implemented");
         }
         
-        public virtual Task BroadcastMessage(string message)
+        public virtual Task HandleClientAsync(User user, byte[] message)
         {
-            throw new NotImplementedException("BroadcastMessage not implemented");
+            throw new NotImplementedException("HandleClientAsync not implemented");
+        }
+        
+        public virtual void HandleAuth(User user, string message)
+        {
+            throw new NotImplementedException("HandleAuth not implemented");
+        }
+        
+        public virtual void HandleAuth(User user, byte[] message)
+        {
+            throw new NotImplementedException("HandleAuth not implemented");
+        }
+        
+        public virtual void HandleJoin(User user, string message)
+        {
+            throw new NotImplementedException("HandleJoin not implemented");
+        }
+        
+        public virtual void HandleMessage(User user, string message)
+        {
+            throw new NotImplementedException("HandleMessage not implemented");
+        }
+        
+        public virtual void HandleMessage(User user, byte[] message)
+        {
+            throw new NotImplementedException("HandleMessage not implemented");
+        }
+        
+        public virtual void HandleBye(User user)
+        {
+            throw new NotImplementedException("HandleBye not implemented");
+        }
+        
+        public virtual bool CheckAuth(User user, string message)
+        {
+            throw new NotImplementedException("CheckAuth not implemented");
+        }
+        
+        public virtual bool CheckMessage(User user, string message)
+        {
+            throw new NotImplementedException("CheckMessage not implemented");
+        }
+        
+        public virtual void HandleERR_FROM(User user, string message)
+        {
+            throw new NotImplementedException("HandleERR_FROM not implemented");
+        }
+        
+        public bool ExistedUser(User user)
+        {
+            lock (ClientsLock)
+            {
+                foreach (var u in Channels[ChannelId])
+                {
+                    if (u.Username == user.Username && u.IsAuthenticated)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        
+        public async Task BroadcastMessage(string message, User? sender, string channelId = "default")
+        {
+            List<Task> tasks = new List<Task>();
+            lock (ClientsLock)
+            {
+                foreach (User user in Channels[channelId])
+                {
+                    if (user == sender || !user.IsAuthenticated) continue;
+                    Task sendTask = user.WriteAsync(message);
+                    tasks.Add(sendTask);
+                }
+            }
+            await Task.WhenAll(tasks);
         }
     }
 }

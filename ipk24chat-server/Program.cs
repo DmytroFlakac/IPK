@@ -83,9 +83,11 @@ class Program
             var users = new Dictionary<string, List<User>>();
             TcpServer tcpServer = new TcpServer(listenIp, listenPort, users);
             var tcpServerTask = tcpServer.Start();
+            UdpServer udpServer = new UdpServer(listenIp, listenPort, users, udpConfirmationTimeout, udpRetryCount);
+            var udpServerTask = udpServer.Start();
     
             // Now that the lambda is marked as async, await can be used.
-            await Task.WhenAll(tcpServerTask);
+            await Task.WhenAll(tcpServerTask, udpServerTask);
         });
         await rootCommand.InvokeAsync(args);
     }

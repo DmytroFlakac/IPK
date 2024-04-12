@@ -13,7 +13,6 @@ namespace Server
     public class TcpServer : AbstractServer
     {
         private readonly TcpListener _server;
-        private readonly object _clientsLock = new object();
 
         public TcpServer(string ipAddress, int port, Dictionary<string, List<User>> channels, string channelId = "default") : 
             base(ipAddress, port, channels, channelId)
@@ -27,14 +26,14 @@ namespace Server
             await AcceptClientsAsync(); // Use asynchronous method to accept clients
         }
 
-        private async Task AcceptClientsAsync()
+        public override async Task AcceptClientsAsync()
         {
             while (true)
             {
                 var client = await _server.AcceptTcpClientAsync();
                 TcpUser user = new TcpUser(client); 
                 
-                lock (_clientsLock)
+                lock (ClientsLock)
                 {
                     if (!Channels.ContainsKey(ChannelId))
                     {
@@ -45,45 +44,43 @@ namespace Server
                 _ = HandleClientAsync(user); // Handle client asynchronously
             }
         }
-
-        private async Task HandleClientAsync(User user)
+        
+        public override async Task HandleClientAsync(User user)
         {
             CancellationTokenSource cts = new CancellationTokenSource();
             try
             {
                 while (!cts.Token.IsCancellationRequested)
                 {
-                    string? message = await user.ReadAsync(); // Read line asynchronously
-                    if (message == null) // Client has disconnected gracefully
+                    string? message = await user.ReadAsyncTcp();
+                   
+                    if (message == null) 
                     {
-                        break;
+                        cts.Cancel();
                     }
-                    else if (message.Contains("AUTH"))
+                    var messageType = user.GetMessageType(message);
+                    switch (messageType)
                     {
-                        HandleAuth(user, message);
-                    }
-                    else if(message.Contains("JOIN"))
-                    {
-                        HandleJoin(user, message);
-                    }
-                    else if(message.Contains("MSG FROM"))
-                    {
-                        Console.WriteLine($"RECV {user.UserServerPort()} | MSG {message}");
-                        await BroadcastMessage(message, user, user.ChannelId);
-                    }
-                    else if(message.Contains("ERR FROM"))
-                    {
-                        HandleERR_FROM(user, message);
-                    }
-                    else if (message == "BYE")
-                    {
-                        HandleBye(user);
-                        break;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"RECV: {message}");
-                        await BroadcastMessage(message, user, user.ChannelId);
+                        case User.MessageType.AUTH:
+                            HandleAuth(user, message);
+                            break;
+                        case User.MessageType.JOIN:
+                            HandleJoin(user, message);
+                            break;
+                        case User.MessageType.MSG:
+                            HandleMessage(user, message);
+                            break;
+                        case User.MessageType.ERR:
+                            HandleERR_FROM(user, message);
+                            break;
+                        case User.MessageType.BYE:
+                            HandleBye(user);
+                            break;
+                        default:
+                            Console.WriteLine($"SENT {user.UserServerPort()} | ERR Invalid message format");
+                            await user.WriteAsync("ERR FROM Server IS Invalid message format");
+                            HandleBye(user);
+                            break;
                     }
                 }
             }
@@ -97,7 +94,8 @@ namespace Server
             }
         }
         
-        public void HandleAuth(User user, string message)
+        
+        public override void HandleAuth(User user, string message)
         {
             Console.WriteLine($"RECV {user.UserServerPort()} | AUTH {message}");
             if (CheckAuth(user, message))
@@ -107,26 +105,28 @@ namespace Server
                 user.SetDisplayName(parts[3]);
                 user.SetAuthenticated();
                 Console.WriteLine($"SENT {user.UserServerPort()} | REPLY Authenticated successfully");
-                user.WriteAsync("REPLY OK IS Authenticated successfully\r\n");
+                user.WriteAsync("REPLY OK IS Authenticated successfully");
                 Console.WriteLine($"SENT {user.UserServerPort()} | MSG {user.DisplayName} has joined {user.ChannelId}");
-                BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}\r\n", null);
+                BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}", null);
             }
         }
         
-        public void HandleJoin(User user, string message)
+        public override void HandleJoin(User user, string message)
         {
             Console.WriteLine($"RECV {user.UserServerPort()} | JOIN {message}");
             var match = Regex.Match(message, user.JoinRegex, RegexOptions.IgnoreCase);
             if (!match.Success)
             {
                 Console.WriteLine($"SENT {user.UserServerPort()} | REPLY invalid join format");
-                user.WriteAsync("REPLY NOK IS Invalid join format\r\n");
+                user.WriteAsync("REPLY NOK IS Invalid join format");
                 return;
             }
+            user.SetDisplayName(match.Groups[2].Value);
             BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}\r\n", user, user.ChannelId);
             var channelId = match.Groups[1].Value;
+            
 
-            lock (_clientsLock)
+            lock (ClientsLock)
             {
                 if (!string.IsNullOrEmpty(user.ChannelId) && Channels.ContainsKey(user.ChannelId))
                 {
@@ -140,37 +140,59 @@ namespace Server
                 Channels[channelId].Add(user);
             }
             Console.WriteLine($"SENT {user.UserServerPort()} | MSG {user.DisplayName} has joined {channelId}");
-            BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}\r\n", null, channelId);
+            BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", null, channelId);
             Console.WriteLine($"SENT {user.UserServerPort()} | REPLY Joined {channelId}");
-            user.WriteAsync($"REPLY OK IS Joined {channelId}\r\n");
+            user.WriteAsync($"REPLY OK IS Joined {channelId}");
         }
 
         
-        public bool CheckAuth(User user, string message)
+        public override bool CheckAuth(User user, string message)
         {
             var parts = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length != 6 || parts[0].ToUpper() != "AUTH" || parts[4].ToUpper() != "USING" || 
                 !Regex.IsMatch(parts[3], user.DisplayRegex) || !Regex.IsMatch(parts[5], user.BaseRegex))
             {
                 Console.WriteLine($"SENT {user.UserServerPort()} | REPLY invalid auth format");
-                user.WriteAsync("REPLY NOK IS Invalid auth format\r\n");
+                user.WriteAsync("REPLY NOK IS Invalid auth format");
                 return false;
-            }  
+            }
+
+            if (ExistedUser(user))
+            {
+                Console.WriteLine($"SENT {user.UserServerPort()} | REPLY NOK IS User already connected");
+                user.WriteAsync("REPLY NOK IS User already connected");
+                return false;
+            }
+            
             return true;
         }
         
-        public bool CheckMessage(User user, string message)
+        
+        public override async void HandleMessage(User user, string message)
+        {
+            Console.WriteLine($"RECV {user.UserServerPort()} | MSG {message}");
+            if (!CheckMessage(user, message))
+            {
+                Console.WriteLine($"SENT {user.UserServerPort()} | ERR Invalid message format");
+                await user.WriteAsync("ERR FROM Server IS Invalid message format");
+                HandleBye(user);
+            }
+            Console.WriteLine("Broadcast in HandleMessage");
+            await BroadcastMessage(message, user, user.ChannelId);
+        }
+        
+        public override bool CheckMessage(User user, string message)
         {
             if (!Regex.IsMatch(message, user.MessageRegex))
             {
                 Console.WriteLine($"SENT {user.UserServerPort()} | REPLY invalid message format");
-                user.WriteAsync("REPLY NOK IS Invalid message format\r\n");
+                user.WriteAsync("REPLY NOK IS Invalid message format");
                 return false;
             }
             return true;
         }
         
-        public void HandleERR_FROM(User user, string message)
+        public override void HandleERR_FROM(User user, string message)
         {
             if (!CheckMessage(user, message))
             {
@@ -179,37 +201,22 @@ namespace Server
             }
         }
         
-        
-        public void HandleBye(User user)
+        public override void HandleBye(User user)
         {
             Console.WriteLine($"RECV {user.UserServerPort()} | BYE");
-            lock (_clientsLock)
+            lock (ClientsLock)
             {
                 Channels[user.ChannelId].Remove(user);
             }
             Console.WriteLine($"SENT {user.UserServerPort()} | MSG {user.DisplayName} has left {user.ChannelId}");
             user.Disconnect();
-            BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}\r\n", user, user.ChannelId);
+            BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
         }
 
-        private Task BroadcastMessage(string message, User sender, string channelId = "default")
-        {
-            lock (_clientsLock)
-            {
-                foreach (var user in Channels[channelId])
-                {
-                    if (user == sender || !message.Contains("MSG FROM") || !user.IsAuthenticated) continue;
-                    if (!CheckMessage(user, message))
-                    {
-                        Console.WriteLine($"SENT {user.UserServerPort()} | ERR Invalid message format");
-                        user.WriteAsync("ERR FROM Server IS Invalid message format\r\n");
-                        HandleBye(user);
-                    }
-                    user.WriteAsync(message);
-                }
-            }
-            return Task.CompletedTask;
-        }
+        
+        
+        
+        
     }
     
    

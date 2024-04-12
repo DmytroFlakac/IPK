@@ -14,15 +14,33 @@ namespace Server
 
         // Handles new client connections
         // void AcceptClients(object client);
-        void AcceptClients();
+        Task AcceptClientsAsync();
+        
+        Task HandleClientAsync(User user);
+        
+        void HandleAuth(User user, string message);
+        
+        void HandleAuth(User user, byte[] message);
+        
+        void HandleJoin(User user, string message);
+        
+        void HandleMessage(User user, string message);
+
+        void HandleBye(User user);
+        
+        bool CheckAuth(User user, string message);
+        
+        bool CheckMessage(User user, string message);
+        
+        public void HandleERR_FROM(User user, string message);
 
         // Sends a message to a specified client
-        Task SendMessage(TcpClient client, string message);
-        Task SendMessage(IPEndPoint endPoint, string message);
+        // Task SendMessage(TcpClient client, string message);
+        // Task SendMessage(IPEndPoint endPoint, string message);
 
         // Receives a message from a specified client
-        string ReceiveMessage(object client);
-        
-        Task BroadcastMessage(string message);
+        // string ReceiveMessage(object client);
+
+        Task BroadcastMessage(string message, User sender, string channelId = "default");
     }
 }

@@ -14,10 +14,6 @@ namespace Server
         int Port { get; set; }
         
         // Regex
-        string BaseRegex { get; }
-        string DisplayRegex { get; }
-        string MessageRegex { get; set; }
-        string JoinRegex { get; set; }
 
         // Methods
         void SetDisplayName(string displayName);
@@ -25,7 +21,10 @@ namespace Server
         void SetAuthenticated();
         string UserServerPort();
        
-        public Task<string?> ReadAsync();
+        public Task<string?> ReadAsyncTcp();
+        
+        public Task<byte[]> ReadAsyncUdp();
+        
         public Task WriteAsync(string message);
         public bool IsConnected();
         
