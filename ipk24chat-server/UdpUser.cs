@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Net;
@@ -10,6 +11,7 @@ public class UdpUser : User
 {
     private readonly UdpClient _udpClient;
     private IPEndPoint _endPoint;
+    private int _maxRetransmissions;
     
     
     public enum UdpMessageType : byte
@@ -22,30 +24,26 @@ public class UdpUser : User
         ERR = 0xFE,
         BYE = 0xFF
     }
-    public UdpUser(UdpClient client, IPEndPoint endPoint) 
+    public UdpUser(UdpClient client, IPEndPoint endPoint, int retransmissionTimeout, int maxRetransmissions)
     {
         int newPort = GetAvailablePort();
-        IPAddress serverIPAddress = ((IPEndPoint)client.Client.LocalEndPoint).Address;
-        _udpClient = new UdpClient(new IPEndPoint(serverIPAddress, newPort));
+        IPAddress serverIpAddress = (((IPEndPoint)client.Client.LocalEndPoint!)!).Address;
+        _udpClient = new UdpClient(new IPEndPoint(serverIpAddress, newPort));
         _endPoint = endPoint;
         Port = endPoint.Port;
         Host = endPoint.Address.ToString();
-        _udpClient.Client.ReceiveTimeout = 1000;
-        _udpClient.Client.SendTimeout = 1000;
+        _udpClient.Client.ReceiveTimeout = retransmissionTimeout;
+        _udpClient.Client.SendTimeout = retransmissionTimeout;
+        _maxRetransmissions = maxRetransmissions;
         
-    }
-    
-    public void SetConfirmation(byte[] confirm)
-    {
-        Confirm = confirm;
     }
     private int GetAvailablePort()
     {
-        // Temporarily open a socket to let the system assign an available port, then close it
+        
         using (var tempSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
         {
             tempSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
-            return ((IPEndPoint)tempSocket.LocalEndPoint).Port;
+            return ((IPEndPoint)tempSocket.LocalEndPoint!).Port;
         }
     }
     
@@ -59,50 +57,47 @@ public class UdpUser : User
     {
         ++MessageId;
         byte[] buffer = UdpMessageHelper.BuildMessage(message, MessageId);
+        Console.WriteLine($"SENT {Host}:{Port} | MSG {BitConverter.ToString(buffer)}");
         await _udpClient.SendAsync(buffer, buffer.Length, _endPoint);
-        string hex = BitConverter.ToString(buffer);
-        Console.WriteLine($"SENT {Host}:{Port} | {hex}");
-        await WaitConfirmation(buffer, 3);
-        Console.WriteLine("CONFIRMED");
+        // string hex = BitConverter.ToString(buffer);
+        // Console.WriteLine($"SENT {Host}:{Port} | {hex}");
+        await WaitConfirmation(buffer, _maxRetransmissions);
+        // Console.WriteLine("CONFIRMED");
     }
     
     public override async Task WriteAsyncUdp(byte[] message, int retranmissions)
     {
+        Console.WriteLine($"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(message)} {BitConverter.ToString(message)}");
         await _udpClient.SendAsync(message, message.Length, _endPoint);
         if (retranmissions > 0)
             await WaitConfirmation(message, retranmissions);
-        
     }
     
     public override void SendConfirmation(int messageID)
     {
+        Console.WriteLine($"SENT {Host}:{Port} | CONFIRM {BitConverter.ToString(UdpMessageHelper.BuildConfirm(messageID))}");
         byte[] messageBytes = UdpMessageHelper.BuildConfirm(messageID);
         _udpClient.Send(messageBytes, messageBytes.Length, _endPoint);
     }
     
     public override async Task<bool> WaitConfirmation(byte[] messageBytes, int maxRetransmissions)
     {
-        Console.WriteLine("CONFIRM WAITING...");
         for (int i = 0; i < maxRetransmissions; i++)
         {
             try
             {
                 if (Confirm == null)
                 {
-                    int port = _endPoint.Port;
-                    string host = _endPoint.Address.ToString();
-                    Console.WriteLine($"WAITING from {host}:{port} | {i}");
-                    int severPort = ((IPEndPoint)_udpClient.Client.LocalEndPoint).Port;
-                    string serverHost = ((IPEndPoint)_udpClient.Client.LocalEndPoint).Address.ToString();
-                    Console.WriteLine($"WAITING on {serverHost}:{severPort} | {i}");
-                    // IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Any, 0);
+                    // int port = _endPoint.Port;
+                    // string host = _endPoint.Address.ToString();
+                    // Console.WriteLine($"WAITING from {host}:{port} | {i}");
+                    // int severPort = (((IPEndPoint)_udpClient.Client.LocalEndPoint!)!).Port;
+                    // string serverHost = ((IPEndPoint)_udpClient.Client.LocalEndPoint).Address.ToString();
+                    // Console.WriteLine($"WAITING on {serverHost}:{severPort} | {i}");
                     Confirm = _udpClient.Receive(ref _endPoint);
-                    string hex = BitConverter.ToString(Confirm);
-                    Console.WriteLine($"RECV {Host}:{Port} | {hex} dngksngskdngsd");
-                    
                 }
-                int messageId = UdpMessageHelper.GetMessageID(Confirm);
                 UdpMessageHelper.MessageType messageType = UdpMessageHelper.GetMessageType(Confirm);
+                Console.WriteLine($"RECV {Host}:{Port} | {messageType} {BitConverter.ToString(Confirm)}");
                
                 if (UdpMessageHelper.GetMessageType(Confirm) == UdpMessageHelper.MessageType.CONFIRM &&
                     UdpMessageHelper.GetMessageID(Confirm) == MessageId)
@@ -112,7 +107,6 @@ public class UdpUser : User
                 }
                 else
                 {
-                    Console.WriteLine($"SENT {Host}:{Port} | {messageType}");
                     await WriteAsyncUdp(messageBytes, 0);
                 }
             }
@@ -127,14 +121,6 @@ public class UdpUser : User
         return false;
     }
     
-
-    // public override void SendReply(string message, int messageID, int refId, bool success)
-    // {
-    //     byte[] messageBytes = UdpMessageHelper.BuildReply(message, messageID, refId, success);
-    //     _udpClient.Send(messageBytes, messageBytes.Length, _endPoint);
-    // }
-
-
     public override bool IsConnected() => true;
 
     public override MessageType GetMessageType(byte[] message)
@@ -157,6 +143,7 @@ public class UdpUser : User
 
     public override void Disconnect()
     {
+        
         _udpClient.Close();
     }
 }

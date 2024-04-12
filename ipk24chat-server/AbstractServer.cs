@@ -23,7 +23,7 @@ namespace Server
             ChannelId = channelId;
         }
         
-        public virtual Task Start()
+        public virtual Task Start(CancellationToken cts)
         {
             throw new NotImplementedException("Start not implemented");
         }
@@ -37,28 +37,13 @@ namespace Server
             throw new NotImplementedException("AcceptClientsAsync not implemented");
         }
 
-        // public virtual Task SendMessage(TcpClient client, string message)
-        // {
-        //     throw new NotImplementedException("SendTCPMessage not implemented");
-        // }
-        //
-        // public virtual Task SendMessage(IPEndPoint endPoint, string message)
-        // {
-        //     throw new NotImplementedException("SendUDPMessage not implemented");
-        // }
-
-        // public virtual string ReceiveMessage(object client)
-        // {
-        //     throw new NotImplementedException("ReceiveMessage not implemented");
-        // }
-        //
-        
-        public virtual Task HandleClientAsync(User user)
+       
+        public virtual Task HandleClientAsync(User user, CancellationToken cts)
         {
             throw new NotImplementedException("HandleClientAsync not implemented");
         }
         
-        public virtual Task HandleClientAsync(User user, byte[] message)
+        public virtual Task HandleClientAsync(User user, byte[] message, CancellationToken cts)
         {
             throw new NotImplementedException("HandleClientAsync not implemented");
         }
@@ -78,6 +63,12 @@ namespace Server
             throw new NotImplementedException("HandleJoin not implemented");
         }
         
+        public virtual void HandleJoin(User user, byte[] message)
+        {
+            throw new NotImplementedException("HandleJoin not implemented");
+        }
+
+        
         public virtual void HandleMessage(User user, string message)
         {
             throw new NotImplementedException("HandleMessage not implemented");
@@ -89,6 +80,11 @@ namespace Server
         }
         
         public virtual void HandleBye(User user)
+        {
+            throw new NotImplementedException("HandleBye not implemented");
+        }
+        
+        public virtual void HandleBye(User user, byte[] message)
         {
             throw new NotImplementedException("HandleBye not implemented");
         }
@@ -112,29 +108,56 @@ namespace Server
         {
             lock (ClientsLock)
             {
-                foreach (var u in Channels[ChannelId])
+                foreach (var channel in Channels)
                 {
-                    if (u.Username == user.Username && u.IsAuthenticated)
+                    foreach (var u in channel.Value)
                     {
-                        return true;
+                        if (u.Username == user.Username && u.IsAuthenticated)
+                        {
+                            return true;
+                        }
                     }
                 }
+                
             }
             return false;
+        }
+        
+        public void AddUser(User user, string channelId)
+        {
+            lock (ClientsLock)
+            {
+                if (!string.IsNullOrEmpty(user.ChannelId) && Channels.ContainsKey(user.ChannelId))
+                {
+                    Channels[user.ChannelId].Remove(user);
+                }
+                user.ChannelId = channelId;
+                if (!Channels.ContainsKey(channelId))
+                {
+                    Channels[channelId] = new List<User>();
+                }
+                Channels[channelId].Add(user);
+            }
         }
         
         
         public async Task BroadcastMessage(string message, User? sender, string channelId = "default")
         {
-            List<Task> tasks = new List<Task>();
+            List<User> usersToMessage = new List<User>();
             lock (ClientsLock)
             {
-                foreach (User user in Channels[channelId])
+                if (Channels.TryGetValue(channelId, out var users))
                 {
-                    if (user == sender || !user.IsAuthenticated) continue;
-                    Task sendTask = user.WriteAsync(message);
-                    tasks.Add(sendTask);
+                    usersToMessage = new List<User>(users);
                 }
+            }
+            
+            List<Task> tasks = new List<Task>();
+            foreach (User user in usersToMessage)
+            {
+                if (user == sender || !user.IsAuthenticated)
+                    continue;
+                tasks.Add(user.WriteAsync(message));
             }
             await Task.WhenAll(tasks);
         }

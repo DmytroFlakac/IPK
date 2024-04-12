@@ -17,11 +17,13 @@ public abstract class User : IUser
     
     public int MessageId = -1;
     
-    // private bool _broadcast = false;
+    private bool _broadcast = false;
     
     public readonly string BaseRegex = @"^[A-Za-z0-9-]+$";
     public readonly string DisplayRegex = @"^[!-~]{1,20}$";
-    public readonly string MessageRegex = @"^(MSG|ERR) FROM ([A-Za-z0-9-]+) IS ([\r\n -~]{1,1400})$";
+    public readonly string MSGERRRegex = @"^(MSG|ERR) FROM ([A-Za-z0-9-]+) IS ([\r\n -~]{1,1400})$";
+    
+    public string MessageRegex =  @"^[\r\n -~]{1,1400}$";
     
     public readonly string JoinRegex = @"^JOIN\s+(\S+)(?:\s+AS\s+(.+))?$";
     public byte[]? Confirm = null;
@@ -72,14 +74,14 @@ public abstract class User : IUser
     public void SetUsername(string username) => Username = username;
     public void SetAuthenticated() => IsAuthenticated = true;
     
-    // public void BroadcastMessage() => _broadcast = true;
-    //
-    // public void EndBroadcast() => _broadcast = false;
-    //
-    // public bool IsBroadcasting() => _broadcast;
+    public void BroadcastMessage() => _broadcast = true;
+    
+    public void EndBroadcast() => _broadcast = false;
+    
+    public bool IsBroadcasting() => _broadcast;
     public string UserServerPort() => $"{Host}:{Port}";
 
-    public virtual Task<string?> ReadAsyncTcp()
+    public virtual Task<string?> ReadAsyncTcp(CancellationToken cts)
     {
         throw new NotImplementedException("ReadAsyncTcp not implemented");
     }
@@ -104,11 +106,6 @@ public abstract class User : IUser
     {
         throw new NotImplementedException("WaitConfirmation not implemented");
     }
-    
-    // public virtual Task WriteAsync(byte[] message)
-    // {
-    //     throw new NotImplementedException("WriteAsync not implemented");
-    // }
 
     public virtual bool IsConnected()
     {
@@ -124,17 +121,6 @@ public abstract class User : IUser
     {
         throw new NotImplementedException("SendReply not implemented");
     }
-    
-    
-    // public virtual void SendMessage(string message)
-    // {
-    //     throw new NotImplementedException("SendMessage not implemented");
-    // }
-    
-    // public virtual void ReceiveMessage(string message)
-    // {
-    //     throw new NotImplementedException("ReceiveMessage not implemented");
-    // }
 
     public virtual void Disconnect()
     {

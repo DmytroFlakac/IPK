@@ -79,12 +79,19 @@ class Program
                 }
                 return;
             }
+            CancellationTokenSource cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;  // Prevent the process from terminating.
+                cts.Cancel();     // Trigger cancellation
+            };
 
             var users = new Dictionary<string, List<User>>();
             TcpServer tcpServer = new TcpServer(listenIp, listenPort, users);
-            var tcpServerTask = tcpServer.Start();
+            var tcpServerTask = tcpServer.Start(cts.Token);
             UdpServer udpServer = new UdpServer(listenIp, listenPort, users, udpConfirmationTimeout, udpRetryCount);
-            var udpServerTask = udpServer.Start();
+            var udpServerTask = udpServer.Start(cts.Token);
+            
     
             // Now that the lambda is marked as async, await can be used.
             await Task.WhenAll(tcpServerTask, udpServerTask);

@@ -21,7 +21,7 @@ namespace Server
         void SetAuthenticated();
         string UserServerPort();
        
-        public Task<string?> ReadAsyncTcp();
+        public Task<string?> ReadAsyncTcp(CancellationToken cts);
         
         public Task<byte[]> ReadAsyncUdp();
         

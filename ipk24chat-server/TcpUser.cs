@@ -15,14 +15,15 @@ public class TcpUser : User
     {
         _tcpClient = client;
         _stream = _tcpClient.GetStream();
-        Port = ((IPEndPoint)client.Client.RemoteEndPoint).Port;
+        Port = ((IPEndPoint)client.Client.RemoteEndPoint!).Port;
         Host = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
     }
     
-    public override async Task<string?> ReadAsyncTcp() => await new StreamReader(_stream).ReadLineAsync();
+    public override async Task<string?> ReadAsyncTcp(CancellationToken cts) => await new StreamReader(_stream).ReadLineAsync(cts);
     
     public override async Task WriteAsync(string message)
     {
+        Console.WriteLine($"SENT {Host}:{Port} | {GetMessageType(message)} {message}");
         var buffer = Encoding.UTF8.GetBytes(message + "\r\n");
         await _stream.WriteAsync(buffer, 0, buffer.Length);
     }
@@ -41,12 +42,15 @@ public class TcpUser : User
             return MessageType.ERR;
         else if (message == "BYE")
             return MessageType.BYE;
+        else if(message.Contains("REPLY"))
+            return MessageType.REPLY;
         else
             return MessageType.ERR;
     }
 
     public override void Disconnect()
     {
+        
         _stream.Close();
         _tcpClient.Close();
     }

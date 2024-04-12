@@ -265,7 +265,15 @@ namespace IPK24Chat
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            ProcessServerReply(message);
+            var lines = message.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in lines)
+            {
+                ProcessServerReply(line);
+            }
+            if (lines.Length > 1)
+            {
+                return;
+            }
             bytesRead = stream.Read(buffer, 0, buffer.Length);
             message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
             ProcessServerReply(message); 

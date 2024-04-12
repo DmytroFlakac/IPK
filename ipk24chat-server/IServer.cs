@@ -7,7 +7,7 @@ namespace Server
     public interface IServer
     {
         // Starts the server and begins listening for client connections
-        Task Start();
+        Task Start(CancellationToken cts);
 
         // Stops the server and cleans up resources
         void Stop();
@@ -16,7 +16,7 @@ namespace Server
         // void AcceptClients(object client);
         Task AcceptClientsAsync();
         
-        Task HandleClientAsync(User user);
+        Task HandleClientAsync(User user, CancellationToken cts);
         
         void HandleAuth(User user, string message);
         
@@ -40,7 +40,11 @@ namespace Server
 
         // Receives a message from a specified client
         // string ReceiveMessage(object client);
+        
+        void AddUser(User user, string channelId);
 
         Task BroadcastMessage(string message, User sender, string channelId = "default");
+        
+        
     }
 }
