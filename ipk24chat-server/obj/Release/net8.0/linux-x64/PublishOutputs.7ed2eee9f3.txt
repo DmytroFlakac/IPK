@@ -1,0 +1,2 @@
+/home/xtrifo00/IPK2/IPK/ipk24chat-server/ipk24chat-server.pdb
+/home/xtrifo00/IPK2/IPK/ipk24chat-server/ipk24chat-server

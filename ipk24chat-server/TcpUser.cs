@@ -9,17 +9,24 @@ namespace Server;
 public class TcpUser : User
 {
     private readonly TcpClient _tcpClient;
-    private readonly NetworkStream _stream;
+    private  NetworkStream _stream;
+    private StreamReader _reader;
     
     public TcpUser(TcpClient client) 
     {
         _tcpClient = client;
         _stream = _tcpClient.GetStream();
+        _reader = new StreamReader(_stream, Encoding.UTF8, leaveOpen: true);
         Port = ((IPEndPoint)client.Client.RemoteEndPoint!).Port;
         Host = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
     }
-    
-    public override async Task<string?> ReadAsyncTcp(CancellationToken cts) => await new StreamReader(_stream).ReadLineAsync(cts);
+
+    public override async Task<string?> ReadAsyncTcp(CancellationToken cts)
+    {
+        string? line = await _reader.ReadLineAsync(cts).ConfigureAwait(false);
+        return line?.Trim(); 
+    }
+
     
     public override async Task WriteAsync(string message)
     {
@@ -50,7 +57,7 @@ public class TcpUser : User
 
     public override void Disconnect()
     {
-        
+        Active = false;
         _stream.Close();
         _tcpClient.Close();
     }

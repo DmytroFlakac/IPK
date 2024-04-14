@@ -62,7 +62,12 @@ namespace Server
             if (messageEndIndex == -1 || messageEndIndex == currentIndex) return false;
             string message = Encoding.UTF8.GetString(data, currentIndex, messageEndIndex - currentIndex);
             if (message.Length > 1400 || !Regex.IsMatch(message, _user.MessageRegex)) return false;
-            return messageEndIndex == data.Length - 1;
+            if(messageEndIndex == data.Length - 1)
+            {
+                _user.SetDisplayName(displayName);
+                return true;
+            }
+            return false;
         }
         
         public bool CheckJoin(byte[] data)
@@ -78,7 +83,12 @@ namespace Server
             if (displayNameEndIndex == -1 || displayNameEndIndex == currentIndex) return false;
             string displayName = Encoding.UTF8.GetString(data, currentIndex, displayNameEndIndex - currentIndex);
             if (!Regex.IsMatch(displayName, _user.DisplayRegex)) return false;
-            return displayNameEndIndex == data.Length - 1;
+            if (displayNameEndIndex == data.Length - 1)
+            {
+                _user.SetDisplayName(displayName);
+                return true;
+            }
+            return false;
         }
         
         public string GetJoinChannel(byte[] data)

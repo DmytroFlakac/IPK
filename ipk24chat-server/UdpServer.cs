@@ -35,7 +35,7 @@ namespace Server
                 while (!cts.IsCancellationRequested)
                 {
                     var result = await _server.ReceiveAsync(cts);
-                    byte[] message = result.Buffer;
+                    byte[]? message = result.Buffer;
                     var user = new UdpUser(_server, result.RemoteEndPoint, _server.Client.ReceiveTimeout, _maxRetransmissions); 
                     UdpMessageHelper = new UdpMessageHelper(user);
 
@@ -47,7 +47,7 @@ namespace Server
                         }
                         Channels[ChannelId].Add(user);
                     }
-                    var clientTask = HandleClientAsync(user, cts); // Store the task
+                    var clientTask = HandleClientAsync(user, message, cts);
                     tasks.Add(clientTask);
                 }
             }
@@ -61,19 +61,18 @@ namespace Server
             }
         }
         
-        
-        
-        
-        public override async Task HandleClientAsync(User user, byte[] message, CancellationToken cts)
-        {
+        public override async Task HandleClientAsync(User user, byte[]? message, CancellationToken cts)
+        {   
             try
             {
-                while (!cts.IsCancellationRequested)
+                while (!cts.IsCancellationRequested && user.Active)
                 {
-                   
+                   CancellationTokenSource cts2 = new CancellationTokenSource();
+                   cts.Register(() => cts2.Cancel());
                     if (message == null) 
                     {
-                        continue;   
+                        CleanUser(user);
+                        cts2.Cancel();  
                     }
                     User.MessageType messageType = user.GetMessageType(message);
                     Console.WriteLine($"RECV {user.UserServerPort()} | {messageType} {BitConverter.ToString(message)}");
@@ -93,35 +92,31 @@ namespace Server
                             user.SetConfirmation(message);
                             break;
                         case User.MessageType.ERR:
-                            // HandleERR_FROM(user, message);
+                            HandleERR_FROM(user, message);
+                            cts2.Cancel();
                             break;
                         case User.MessageType.BYE:
-                            HandleBye(user);
+                            HandleBye(user, message);
+                            cts2.Cancel();
                             break;
                         default:
                             byte[] err = UdpMessageHelper.BuildError("Invalid message format", user.MessageId);
                             await user.WriteAsyncUdp(err, _maxRetransmissions);
-                            HandleBye(user);
+                            CleanUser(user);
                             break;
                     }
                     
-                    message = await user.ReadAsyncUdp();
-                    
+                    if (!cts2.IsCancellationRequested)
+                        message = await user.ReadAsyncUdp(cts2.Token); // Ensure awaiting with the fresh or active token
                 }
             }
-            catch (IOException) // Catch exceptions when client disconnects unexpectedly
+            catch (IOException) 
             {
-                byte[] bye = UdpMessageHelper.BuildBye(user.MessageId);
-                Console.WriteLine($"RECV {user.UserServerPort()} | BYE {BitConverter.ToString(bye)}");
-                await user.WriteAsyncUdp(bye, _maxRetransmissions);
-                user.Disconnect();
+                CleanUser(user);
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine($"SENT {user.UserServerPort()} | BYE BYE");
-                await user.WriteAsync("BYE");
-                user.Disconnect();
-                
+                CleanUser(user);
             }
         }
         
@@ -129,26 +124,21 @@ namespace Server
         {
             int refMessageId = UdpMessageHelper.GetMessageID(message);
             user.SendConfirmation(refMessageId);
-            if (UdpMessageHelper.CheckAuthMessage(message))
+            if (UdpMessageHelper.CheckAuthMessage(message) && !ExistedUser(user))
             {
                 user.SetAuthenticated();
                 user.MessageId = user.MessageId + 1;
                 byte[] reply = UdpMessageHelper.BuildReply("Authenticated", user.MessageId, refMessageId, true);
                 await user.WriteAsyncUdp(reply, 0);
-                if(!(await user.WaitConfirmation(reply, _maxRetransmissions)))
-                {
-                    byte[] err = UdpMessageHelper.BuildError("Failed to authenticate", user.MessageId);
-                    await user.WriteAsyncUdp(err, _maxRetransmissions);
+                if(!await user.WaitConfirmation(reply, _maxRetransmissions))
                     return;
-                }
-                await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined default", null);
+                user.SetAuthenticated();
+                byte[] msg = UdpMessageHelper.BuildMessage($"MSG FROM Server IS {user.DisplayName} has joined default", user.MessageId);
+                await user.WriteAsyncUdp(msg, _maxRetransmissions);
+                var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined default", user);
             }
             else
-            {
-                user.MessageId = user.MessageId + 1;
-                byte[] reply = UdpMessageHelper.BuildReply("Failed to authenticate", user.MessageId, refMessageId, false);
-                await user.WriteAsyncUdp(reply, 0);
-            }
+                CleanUser(user);
         }
         
         public override async void HandleJoin(User user, byte[] message)
@@ -163,13 +153,16 @@ namespace Server
                 return;
             }
             user.SetDisplayName(UdpMessageHelper.GetJoinDisplayName(message));
-            await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+            var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
             string channelId = UdpMessageHelper.GetJoinChannel(message);
             AddUser(user, channelId);
-            await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", null, channelId);
+            user.MessageId = user.MessageId + 1;
+            byte[] msg = UdpMessageHelper.BuildMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", user.MessageId);
+            await user.WriteAsyncUdp(msg, _maxRetransmissions);
             user.MessageId = user.MessageId + 1;
             byte[] replyJoin = UdpMessageHelper.BuildReply($"Joined {channelId}", user.MessageId, UdpMessageHelper.GetMessageID(message), true);
             await user.WriteAsyncUdp(replyJoin, _maxRetransmissions);
+            var broadcast1 = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", user, channelId);
         }
         public override async void HandleMessage(User user, byte[] message)
         {
@@ -177,28 +170,57 @@ namespace Server
             if (UdpMessageHelper.CheckMessage(message))
             {
                 string msg = UdpMessageHelper.BuildStringMessage(message);
-                await BroadcastMessage(msg, user, user.ChannelId);
+                var broadcast = BroadcastMessage(msg, user, user.ChannelId);
             }
             else
             {
+                user.MessageId = user.MessageId + 1;
                 byte[] err = UdpMessageHelper.BuildError("Invalid message format", user.MessageId);
                 await user.WriteAsyncUdp(err, _maxRetransmissions);
+                CleanUser(user);
             }
         }
-        
-        
-        public override async void HandleBye(User user, byte[] message)
+
+        public override async void HandleERR_FROM(User user, byte[] message)
         {
             user.SendConfirmation(UdpMessageHelper.GetMessageID(message));
-            user.Disconnect();
-            Console.WriteLine($"RECV {user.UserServerPort()} | BYE {BitConverter.ToString(message)}");
-            lock (ClientsLock)
+            if (UdpMessageHelper.CheckMessage(message))
             {
-                Channels[user.ChannelId].Remove(user);
+                CleanUser(user);
             }
-            await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+            else
+            {
+                user.MessageId = user.MessageId + 1;
+                byte[] err = UdpMessageHelper.BuildError("Invalid message format", user.MessageId);
+                await user.WriteAsyncUdp(err, _maxRetransmissions);
+                CleanUser(user);
+            }
+
         }
         
-        
+        public override void HandleBye(User user, byte[] message)
+        {
+            user.SendConfirmation(UdpMessageHelper.GetMessageID(message));
+            lock (ClientsLock) Channels[user.ChannelId].Remove(user);
+            user.Disconnect();
+            var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+        }
+
+        public override async void CleanUser(User user)
+        {
+            try
+            {
+                lock (ClientsLock) Channels[user.ChannelId].Remove(user);
+                user.MessageId = user.MessageId + 1;
+                await user.WriteAsyncUdp(UdpMessageHelper.BuildBye(user.MessageId), _maxRetransmissions);
+                var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user,
+                    user.ChannelId);
+                user.Disconnect();
+            }
+            catch (Exception e)
+            {
+                // Ignore
+            }
+        }
     }
 }

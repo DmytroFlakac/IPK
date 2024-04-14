@@ -23,7 +23,7 @@ namespace Server
        
         public Task<string?> ReadAsyncTcp(CancellationToken cts);
         
-        public Task<byte[]> ReadAsyncUdp();
+        public Task<byte[]> ReadAsyncUdp(CancellationToken cts);
         
         public Task WriteAsync(string message);
         public bool IsConnected();

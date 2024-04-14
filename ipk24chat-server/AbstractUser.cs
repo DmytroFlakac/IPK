@@ -18,6 +18,8 @@ public abstract class User : IUser
     public int MessageId = -1;
     
     private bool _broadcast = false;
+
+    public bool Active = true;
     
     public readonly string BaseRegex = @"^[A-Za-z0-9-]+$";
     public readonly string DisplayRegex = @"^[!-~]{1,20}$";
@@ -86,7 +88,7 @@ public abstract class User : IUser
         throw new NotImplementedException("ReadAsyncTcp not implemented");
     }
    
-    public virtual Task<byte[]> ReadAsyncUdp()
+    public virtual Task<byte[]> ReadAsyncUdp(CancellationToken cts)
     {
         throw new NotImplementedException("ReadAsyncUdp not implemented");
     }
@@ -117,10 +119,6 @@ public abstract class User : IUser
         throw new NotImplementedException("SendConfirmation not implemented");
     }
     
-    public virtual void SendReply(string message, int messageID, int refId, bool success)
-    {
-        throw new NotImplementedException("SendReply not implemented");
-    }
 
     public virtual void Disconnect()
     {

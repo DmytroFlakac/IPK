@@ -59,17 +59,21 @@ public class TcpServer : AbstractServer
     
     public override async Task HandleClientAsync(User user, CancellationToken cts)
     { 
+        string? message = null;
         try
         {
-            while (!cts.IsCancellationRequested)
+            while (!cts.IsCancellationRequested && user.Active)
             {
-                string? message = await user.ReadAsyncTcp(cts);
+                CancellationTokenSource cts2 = new CancellationTokenSource();
+                cts.Register(() => cts2.Cancel());
+                
+                if (!cts2.IsCancellationRequested)
+                    message = await user.ReadAsyncTcp(cts2.Token);
                
                 if (message == null) 
                 {
-                    Console.WriteLine($"SENT {user.UserServerPort()} | BYE");
-                    await user.WriteAsync("BYE");
-                    user.Disconnect();
+                    CleanUser(user);
+                    cts2.Cancel();
                 }
                 var messageType = user.GetMessageType(message);
                 switch (messageType)
@@ -88,28 +92,23 @@ public class TcpServer : AbstractServer
                         break;
                     case User.MessageType.BYE:
                         HandleBye(user);
+                        cts2.Cancel();
                         break;
                     default:
                         await user.WriteAsync("ERR FROM Server IS Invalid message format");
                         HandleBye(user);
+                        cts2.Cancel();
                         break;
                 }
             }
         }
-        catch (IOException) // Catch exceptions when client disconnects unexpectedly
+        catch (IOException) 
         {
-            if (user.IsConnected())
-            {
-                Console.WriteLine($"SENT {user.UserServerPort()} | BYE BYE");
-                await user.WriteAsync("BYE");
-                user.Disconnect();
-            }
+            CleanUser(user);
         }
         catch (OperationCanceledException)
         {
-            Console.WriteLine($"SENT {user.UserServerPort()} | BYE BYE");
-            await user.WriteAsync("BYE");
-            user.Disconnect();
+            CleanUser(user);
         }
     }
     
@@ -117,15 +116,15 @@ public class TcpServer : AbstractServer
     public override async void HandleAuth(User user, string message)
     {
         Console.WriteLine($"RECV {user.UserServerPort()} | AUTH {message}");
-        var parts = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        user.SetUsername(parts[1]);
-        user.SetDisplayName(parts[3]);
         if (CheckAuth(user, message))
         {
-            
+            var parts = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            user.SetUsername(parts[1]);
+            user.SetDisplayName(parts[3]);
             user.SetAuthenticated();
             await user.WriteAsync("REPLY OK IS Authenticated successfully");
-            await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}", null);
+            await user.WriteAsync($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}");
+            var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}", user);
         }
     }
     
@@ -139,11 +138,12 @@ public class TcpServer : AbstractServer
             return;
         }
         user.SetDisplayName(match.Groups[2].Value);
-        await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+        var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
         var channelId = match.Groups[1].Value;
         AddUser(user, channelId);
-        await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", null, channelId);
+        await user.WriteAsync($"MSG FROM Server IS {user.DisplayName} has joined {channelId}");
         await user.WriteAsync($"REPLY OK IS Joined {channelId}");
+        var broadcast2 = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", user, channelId);
        
     }
 
@@ -157,13 +157,11 @@ public class TcpServer : AbstractServer
             user.WriteAsync("REPLY NOK IS Invalid auth format");
             return false;
         }
-
         if (ExistedUser(user))
         {
             user.WriteAsync("REPLY NOK IS User already connected");
             return false;
         }
-        
         return true;
     }
     
@@ -174,28 +172,34 @@ public class TcpServer : AbstractServer
         if (!CheckMessage(user, message))
         {
             await user.WriteAsync("ERR FROM Server IS Invalid message format");
-            HandleBye(user);
+            CleanUser(user);
+            return;
         }
         // Console.WriteLine("Broadcast in HandleMessage");
-        await BroadcastMessage(message, user, user.ChannelId);
+        user.SetDisplayName(message.Split(" ")[3]);
+        var broadcast = BroadcastMessage(message, user, user.ChannelId);
+        Console.WriteLine("Broadcast in HandleMessage");
     }
     
     public override bool CheckMessage(User user, string message)
     {
         if (!Regex.IsMatch(message, user.MSGERRRegex))
-        {
-            user.WriteAsync("REPLY NOK IS Invalid message format");
             return false;
-        }
         return true;
     }
     
     public override void HandleERR_FROM(User user, string message)
     {
-        if (!CheckMessage(user, message))
+        if (CheckMessage(user, message))
         {
             Console.WriteLine($"RECV {user.UserServerPort()} | ERR {message}");
-            HandleBye(user);
+            user.SetDisplayName(message.Split(" ")[3]);
+            CleanUser(user);
+        }
+        else
+        {
+            user.WriteAsync("ERR FROM Server IS Invalid message format");
+            CleanUser(user);
         }
     }
     
@@ -207,7 +211,22 @@ public class TcpServer : AbstractServer
             Channels[user.ChannelId].Remove(user);
         }
         user.Disconnect();
-        await BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+        var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+    }
+    
+    public override async void CleanUser(User user)
+    {
+        try
+        {
+            lock (ClientsLock) Channels[user.ChannelId].Remove(user);
+            await user.WriteAsync("BYE");
+            var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+            user.Disconnect();
+        }
+        catch (Exception e)
+        {
+            // Ignore
+        }
     }
 }
 

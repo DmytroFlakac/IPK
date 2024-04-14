@@ -27,7 +27,7 @@ public class UdpUser : User
     public UdpUser(UdpClient client, IPEndPoint endPoint, int retransmissionTimeout, int maxRetransmissions)
     {
         int newPort = GetAvailablePort();
-        IPAddress serverIpAddress = (((IPEndPoint)client.Client.LocalEndPoint!)!).Address;
+        IPAddress serverIpAddress = ((IPEndPoint)client.Client.LocalEndPoint!).Address;
         _udpClient = new UdpClient(new IPEndPoint(serverIpAddress, newPort));
         _endPoint = endPoint;
         Port = endPoint.Port;
@@ -39,7 +39,6 @@ public class UdpUser : User
     }
     private int GetAvailablePort()
     {
-        
         using (var tempSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
         {
             tempSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
@@ -47,9 +46,9 @@ public class UdpUser : User
         }
     }
     
-    public override async Task<byte[]> ReadAsyncUdp()
+    public override async Task<byte[]> ReadAsyncUdp(CancellationToken cts)
     {
-        var buffer = await _udpClient.ReceiveAsync();
+        var buffer = await _udpClient.ReceiveAsync(cts);
         return  buffer.Buffer;
     }
     
@@ -57,20 +56,19 @@ public class UdpUser : User
     {
         ++MessageId;
         byte[] buffer = UdpMessageHelper.BuildMessage(message, MessageId);
-        Console.WriteLine($"SENT {Host}:{Port} | MSG {BitConverter.ToString(buffer)}");
+        Console.WriteLine($"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(buffer)} {BitConverter.ToString(buffer)}");
         await _udpClient.SendAsync(buffer, buffer.Length, _endPoint);
         // string hex = BitConverter.ToString(buffer);
         // Console.WriteLine($"SENT {Host}:{Port} | {hex}");
         await WaitConfirmation(buffer, _maxRetransmissions);
-        // Console.WriteLine("CONFIRMED");
     }
     
-    public override async Task WriteAsyncUdp(byte[] message, int retranmissions)
+    public override async Task WriteAsyncUdp(byte[] message, int retransmissions)
     {
         Console.WriteLine($"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(message)} {BitConverter.ToString(message)}");
         await _udpClient.SendAsync(message, message.Length, _endPoint);
-        if (retranmissions > 0)
-            await WaitConfirmation(message, retranmissions);
+        if (retransmissions > 0)
+            await WaitConfirmation(message, retransmissions);
     }
     
     public override void SendConfirmation(int messageID)
@@ -96,9 +94,6 @@ public class UdpUser : User
                     // Console.WriteLine($"WAITING on {serverHost}:{severPort} | {i}");
                     Confirm = _udpClient.Receive(ref _endPoint);
                 }
-                UdpMessageHelper.MessageType messageType = UdpMessageHelper.GetMessageType(Confirm);
-                Console.WriteLine($"RECV {Host}:{Port} | {messageType} {BitConverter.ToString(Confirm)}");
-               
                 if (UdpMessageHelper.GetMessageType(Confirm) == UdpMessageHelper.MessageType.CONFIRM &&
                     UdpMessageHelper.GetMessageID(Confirm) == MessageId)
                 {
@@ -143,7 +138,7 @@ public class UdpUser : User
 
     public override void Disconnect()
     {
-        
+        Active = false;
         _udpClient.Close();
     }
 }

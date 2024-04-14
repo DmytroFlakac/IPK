@@ -80,13 +80,14 @@ class Program
                 return;
             }
             CancellationTokenSource cts = new CancellationTokenSource();
+            var users = new Dictionary<string, List<User>>();
             Console.CancelKeyPress += (sender, e) =>
             {
                 e.Cancel = true;  // Prevent the process from terminating.
+                users = new Dictionary<string, List<User>>();
                 cts.Cancel();     // Trigger cancellation
             };
-
-            var users = new Dictionary<string, List<User>>();
+            
             TcpServer tcpServer = new TcpServer(listenIp, listenPort, users);
             var tcpServerTask = tcpServer.Start(cts.Token);
             UdpServer udpServer = new UdpServer(listenIp, listenPort, users, udpConfirmationTimeout, udpRetryCount);

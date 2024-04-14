@@ -104,6 +104,11 @@ namespace Server
             throw new NotImplementedException("HandleERR_FROM not implemented");
         }
         
+        public virtual void HandleERR_FROM(User user, byte[] message)
+        {
+            throw new NotImplementedException("HandleERR_FROM not implemented");
+        }
+        
         public bool ExistedUser(User user)
         {
             lock (ClientsLock)
@@ -140,6 +145,10 @@ namespace Server
             }
         }
         
+        public virtual void CleanUser(User user)
+        {
+            throw new NotImplementedException("CleanUser not implemented");
+        }
         
         public async Task BroadcastMessage(string message, User? sender, string channelId = "default")
         {
