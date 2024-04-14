@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server;
@@ -60,27 +60,14 @@ public abstract class User : IUser
     {
         Confirm = confirm;
     }
-    
     public virtual MessageType GetMessageType(byte[] message)
     {
         throw new NotImplementedException("GetMessageType not implemented");
     }
     
-    // public void CancelUdpListen() => _cts.Cancel();
-    //
-    // public void NewCts() => _cts = new CancellationTokenSource();
-    //
-    // public CancellationTokenSource Cts() => _cts;
-    
     public void SetDisplayName(string displayName) => DisplayName = displayName;
     public void SetUsername(string username) => Username = username;
     public void SetAuthenticated() => IsAuthenticated = true;
-    
-    public void BroadcastMessage() => _broadcast = true;
-    
-    public void EndBroadcast() => _broadcast = false;
-    
-    public bool IsBroadcasting() => _broadcast;
     public string UserServerPort() => $"{Host}:{Port}";
 
     public virtual Task<string?> ReadAsyncTcp(CancellationToken cts)

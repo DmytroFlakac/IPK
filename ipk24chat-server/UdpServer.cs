@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,7 +55,7 @@ namespace Server
             }
             finally
             {
-                await Task.WhenAll(tasks); // Ensure all tasks complete or are cancelled
+                await Task.WhenAll(tasks);
             }
         }
         
@@ -65,8 +63,11 @@ namespace Server
         {   
             try
             {
+                int messageID = UdpMessageHelper.GetMessageID(message);
+                int currentMessageID = UdpMessageHelper.GetMessageID(message);
                 while (!cts.IsCancellationRequested && user.Active)
                 {
+                    
                    CancellationTokenSource cts2 = new CancellationTokenSource();
                    cts.Register(() => cts2.Cancel());
                     if (message == null) 
@@ -74,6 +75,7 @@ namespace Server
                         CleanUser(user);
                         cts2.Cancel();  
                     }
+                    
                     User.MessageType messageType = user.GetMessageType(message);
                     Console.WriteLine($"RECV {user.UserServerPort()} | {messageType} {BitConverter.ToString(message)}");
                     
@@ -105,9 +107,13 @@ namespace Server
                             CleanUser(user);
                             break;
                     }
-                    
-                    if (!cts2.IsCancellationRequested)
-                        message = await user.ReadAsyncUdp(cts2.Token); // Ensure awaiting with the fresh or active token
+                    while(messageID == currentMessageID && !cts.IsCancellationRequested)
+                    {
+                        if (!cts2.IsCancellationRequested)
+                            message = await user.ReadAsyncUdp(cts2.Token);
+                        currentMessageID = UdpMessageHelper.GetMessageID(message);
+                    }
+                    messageID = currentMessageID;
                 }
             }
             catch (IOException) 
@@ -133,6 +139,7 @@ namespace Server
                 if(!await user.WaitConfirmation(reply, _maxRetransmissions))
                     return;
                 user.SetAuthenticated();
+                user.MessageId = user.MessageId + 1;
                 byte[] msg = UdpMessageHelper.BuildMessage($"MSG FROM Server IS {user.DisplayName} has joined default", user.MessageId);
                 await user.WriteAsyncUdp(msg, _maxRetransmissions);
                 var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined default", user);

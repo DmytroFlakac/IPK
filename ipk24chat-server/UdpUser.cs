@@ -1,8 +1,7 @@
 ﻿using System;
-using System.IO;
 using System.Net.Sockets;
-using System.Text;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server;
@@ -54,13 +53,21 @@ public class UdpUser : User
     
     public override async Task WriteAsync(string message)
     {
-        ++MessageId;
-        byte[] buffer = UdpMessageHelper.BuildMessage(message, MessageId);
-        Console.WriteLine($"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(buffer)} {BitConverter.ToString(buffer)}");
-        await _udpClient.SendAsync(buffer, buffer.Length, _endPoint);
-        // string hex = BitConverter.ToString(buffer);
-        // Console.WriteLine($"SENT {Host}:{Port} | {hex}");
-        await WaitConfirmation(buffer, _maxRetransmissions);
+        try
+        {
+            ++MessageId;
+            byte[] buffer = UdpMessageHelper.BuildMessage(message, MessageId);
+            Console.WriteLine(
+                $"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(buffer)} {BitConverter.ToString(buffer)}");
+            await _udpClient.SendAsync(buffer, buffer.Length, _endPoint);
+            // string hex = BitConverter.ToString(buffer);
+            // Console.WriteLine($"SENT {Host}:{Port} | {hex}");
+            await WaitConfirmation(buffer, _maxRetransmissions);
+        }
+        catch (SocketException e)
+        {
+           //ignore
+        }
     }
     
     public override async Task WriteAsyncUdp(byte[] message, int retransmissions)
@@ -94,6 +101,7 @@ public class UdpUser : User
                     // Console.WriteLine($"WAITING on {serverHost}:{severPort} | {i}");
                     Confirm = _udpClient.Receive(ref _endPoint);
                 }
+                Console.WriteLine($"RECEIVED {Host}:{Port} | {UdpMessageHelper.GetMessageType(Confirm)} {BitConverter.ToString(Confirm)}");
                 if (UdpMessageHelper.GetMessageType(Confirm) == UdpMessageHelper.MessageType.CONFIRM &&
                     UdpMessageHelper.GetMessageID(Confirm) == MessageId)
                 {
@@ -102,7 +110,9 @@ public class UdpUser : User
                 }
                 else
                 {
-                    await WriteAsyncUdp(messageBytes, 0);
+                    Console.WriteLine($"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(messageBytes)} {BitConverter.ToString(messageBytes)}");
+                    await _udpClient.SendAsync(messageBytes, messageBytes.Length, _endPoint);
+                    Confirm = null;
                 }
             }
             catch (SocketException e)

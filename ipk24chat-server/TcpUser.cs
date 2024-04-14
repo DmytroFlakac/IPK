@@ -1,7 +1,9 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server;
@@ -30,9 +32,16 @@ public class TcpUser : User
     
     public override async Task WriteAsync(string message)
     {
-        Console.WriteLine($"SENT {Host}:{Port} | {GetMessageType(message)} {message}");
-        var buffer = Encoding.UTF8.GetBytes(message + "\r\n");
-        await _stream.WriteAsync(buffer, 0, buffer.Length);
+        try
+        {
+            Console.WriteLine($"SENT {Host}:{Port} | {GetMessageType(message)} {message}");
+            var buffer = Encoding.UTF8.GetBytes(message + "\r\n");
+            await _stream.WriteAsync(buffer, 0, buffer.Length);
+        }
+        catch (Exception e)
+        {
+            // Ignore
+        }
     }
     
     public override bool IsConnected() => _tcpClient.Connected;

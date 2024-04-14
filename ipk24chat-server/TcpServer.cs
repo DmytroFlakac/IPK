@@ -76,6 +76,7 @@ public class TcpServer : AbstractServer
                     cts2.Cancel();
                 }
                 var messageType = user.GetMessageType(message);
+                Console.WriteLine($"User DisplayName {user.DisplayName}");
                 switch (messageType)
                 {
                     case User.MessageType.AUTH:
@@ -138,9 +139,9 @@ public class TcpServer : AbstractServer
             return;
         }
         user.SetDisplayName(match.Groups[2].Value);
-        var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
         var channelId = match.Groups[1].Value;
         AddUser(user, channelId);
+        var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
         await user.WriteAsync($"MSG FROM Server IS {user.DisplayName} has joined {channelId}");
         await user.WriteAsync($"REPLY OK IS Joined {channelId}");
         var broadcast2 = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", user, channelId);
@@ -176,7 +177,7 @@ public class TcpServer : AbstractServer
             return;
         }
         // Console.WriteLine("Broadcast in HandleMessage");
-        user.SetDisplayName(message.Split(" ")[3]);
+        user.SetDisplayName(message.Split(" ")[2]);
         var broadcast = BroadcastMessage(message, user, user.ChannelId);
         Console.WriteLine("Broadcast in HandleMessage");
     }
@@ -193,7 +194,7 @@ public class TcpServer : AbstractServer
         if (CheckMessage(user, message))
         {
             Console.WriteLine($"RECV {user.UserServerPort()} | ERR {message}");
-            user.SetDisplayName(message.Split(" ")[3]);
+            user.SetDisplayName(message.Split(" ")[2]);
             CleanUser(user);
         }
         else
@@ -203,7 +204,7 @@ public class TcpServer : AbstractServer
         }
     }
     
-    public override async void HandleBye(User user)
+    public override void HandleBye(User user)
     {
         Console.WriteLine($"RECV {user.UserServerPort()} | BYE");
         lock (ClientsLock)
