@@ -17,8 +17,6 @@ public abstract class User : IUser
     
     public int MessageId = -1;
     
-    private bool _broadcast = false;
-
     public bool Active = true;
     
     public readonly string BaseRegex = @"^[A-Za-z0-9-]+$";
@@ -49,7 +47,7 @@ public abstract class User : IUser
         IsAuthenticated = false;
         Host = "0.0.0.0";
         Port = 0;
-        ChannelId = "default";
+        ChannelId = "Unknown";
     }
     
     public virtual MessageType GetMessageType(string message)

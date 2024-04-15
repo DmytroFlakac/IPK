@@ -39,7 +39,6 @@ public class TcpServer : AbstractServer
                     {
                         Channels.Add(ChannelId, new List<User>());
                     }
-                    Channels[ChannelId].Add(user);
                 }
                 var clientTask = HandleClientAsync(user, cts); // Store the task
                 tasks.Add(clientTask);
@@ -74,9 +73,9 @@ public class TcpServer : AbstractServer
                 {
                     CleanUser(user);
                     cts2.Cancel();
+                    break;
                 }
                 var messageType = user.GetMessageType(message);
-                Console.WriteLine($"User DisplayName {user.DisplayName}");
                 switch (messageType)
                 {
                     case User.MessageType.AUTH:
@@ -124,6 +123,7 @@ public class TcpServer : AbstractServer
             user.SetDisplayName(parts[3]);
             user.SetAuthenticated();
             await user.WriteAsync("REPLY OK IS Authenticated successfully");
+            AddUser(user, "default");
             await user.WriteAsync($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}");
             var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {user.ChannelId}", user);
         }
@@ -140,11 +140,13 @@ public class TcpServer : AbstractServer
         }
         user.SetDisplayName(match.Groups[2].Value);
         var channelId = match.Groups[1].Value;
-        AddUser(user, channelId);
+        
         var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
         await user.WriteAsync($"MSG FROM Server IS {user.DisplayName} has joined {channelId}");
         await user.WriteAsync($"REPLY OK IS Joined {channelId}");
+        AddUser(user, channelId);
         var broadcast2 = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has joined {channelId}", user, channelId);
+        
        
     }
 
@@ -179,7 +181,6 @@ public class TcpServer : AbstractServer
         // Console.WriteLine("Broadcast in HandleMessage");
         user.SetDisplayName(message.Split(" ")[2]);
         var broadcast = BroadcastMessage(message, user, user.ChannelId);
-        Console.WriteLine("Broadcast in HandleMessage");
     }
     
     public override bool CheckMessage(User user, string message)
@@ -211,8 +212,8 @@ public class TcpServer : AbstractServer
         {
             Channels[user.ChannelId].Remove(user);
         }
-        user.Disconnect();
         var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+        user.Disconnect();
     }
     
     public override async void CleanUser(User user)
@@ -221,10 +222,10 @@ public class TcpServer : AbstractServer
         {
             lock (ClientsLock) Channels[user.ChannelId].Remove(user);
             await user.WriteAsync("BYE");
-            var broadcast = BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
+            var broadcast =  BroadcastMessage($"MSG FROM Server IS {user.DisplayName} has left {user.ChannelId}", user, user.ChannelId);
             user.Disconnect();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             // Ignore
         }

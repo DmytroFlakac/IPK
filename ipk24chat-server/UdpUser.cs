@@ -60,11 +60,9 @@ public class UdpUser : User
             Console.WriteLine(
                 $"SENT {Host}:{Port} | {UdpMessageHelper.GetMessageType(buffer)} {BitConverter.ToString(buffer)}");
             await _udpClient.SendAsync(buffer, buffer.Length, _endPoint);
-            // string hex = BitConverter.ToString(buffer);
-            // Console.WriteLine($"SENT {Host}:{Port} | {hex}");
             await WaitConfirmation(buffer, _maxRetransmissions);
         }
-        catch (SocketException e)
+        catch (SocketException)
         {
            //ignore
         }
@@ -93,15 +91,8 @@ public class UdpUser : User
             {
                 if (Confirm == null)
                 {
-                    // int port = _endPoint.Port;
-                    // string host = _endPoint.Address.ToString();
-                    // Console.WriteLine($"WAITING from {host}:{port} | {i}");
-                    // int severPort = (((IPEndPoint)_udpClient.Client.LocalEndPoint!)!).Port;
-                    // string serverHost = ((IPEndPoint)_udpClient.Client.LocalEndPoint).Address.ToString();
-                    // Console.WriteLine($"WAITING on {serverHost}:{severPort} | {i}");
                     Confirm = _udpClient.Receive(ref _endPoint);
                 }
-                Console.WriteLine($"RECEIVED {Host}:{Port} | {UdpMessageHelper.GetMessageType(Confirm)} {BitConverter.ToString(Confirm)}");
                 if (UdpMessageHelper.GetMessageType(Confirm) == UdpMessageHelper.MessageType.CONFIRM &&
                     UdpMessageHelper.GetMessageID(Confirm) == MessageId)
                 {

@@ -38,7 +38,7 @@ public class TcpUser : User
             var buffer = Encoding.UTF8.GetBytes(message + "\r\n");
             await _stream.WriteAsync(buffer, 0, buffer.Length);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             // Ignore
         }

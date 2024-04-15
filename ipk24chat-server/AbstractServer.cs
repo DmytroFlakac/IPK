@@ -151,6 +151,9 @@ namespace Server
         
         public async Task BroadcastMessage(string message, User? sender, string channelId = "default")
         {
+            if(channelId == "Unknown")
+                return;
+            
             List<User> usersToMessage = new List<User>();
             lock (ClientsLock)
             {

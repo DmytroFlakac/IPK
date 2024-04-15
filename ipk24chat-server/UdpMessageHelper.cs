@@ -7,9 +7,9 @@ namespace Server
 {
     public class UdpMessageHelper
     {
-        private UdpUser _user;
+        private User _user;
         
-        public UdpMessageHelper(UdpUser user)
+        public UdpMessageHelper(User user)
         {
             _user = user;
         }
