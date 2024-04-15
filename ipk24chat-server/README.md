@@ -46,11 +46,6 @@ Understanding the server side of the IPK24-CHAT requires knowledge of:
 - **Expected Output**: All clients maintain stable connections and can exchange messages reliably.
 - **Actual Output**: As expected.
 
-#### Stress Testing
-- **Objective**: Determine how the server performs under high load.
-- **Procedure**: Use a script to create a high number of simultaneous connections and message exchanges.
-- **Expected Output**: Server handles all connections with minimal latency and no dropped connections.
-- **Actual Output**: Performance degradation noted beyond 100 concurrent connections, indicating the need for optimization.
 ## Usage
 1. Deploy the server on a machine with a public IP.
 2. Configure firewall and network settings to allow traffic on the chosen ports.
