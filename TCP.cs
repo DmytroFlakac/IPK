@@ -112,7 +112,6 @@ namespace IPK24Chat
                     Console.CancelKeyPress += (sender, e) => {
                         e.Cancel = true; 
                         cts.Cancel();
-                        Thread.Sleep(300);
                         Disconnect();
                         Environment.Exit(0);
                     };
@@ -190,6 +189,7 @@ namespace IPK24Chat
                     else if (!autorized)
                     {
                         Console.Error.WriteLine("ERR: Not authorized. Use /auth to authenticate.");
+                        return;
                     }
                     HandleJoin(parts[1]);
                     break;
@@ -254,14 +254,13 @@ namespace IPK24Chat
         }
 
         private void HandleJoin(string channelId)
-        {
+        {   
+            // if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
+            // {
+            //     Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
+            //     return;
+            // }
             SendMessage($"JOIN {channelId} AS {displayName}");
-            if (channelId.Length > 20 || !Regex.IsMatch(channelId, baseRegex))
-            {
-                Console.Error.WriteLine("ERR: Invalid input. Channel ID must be alphanumeric and have a maximum length of 20 characters.");
-                return;
-            }
-            Thread.Sleep(300);
             byte[] buffer = new byte[1024];
             int bytesRead = stream.Read(buffer, 0, buffer.Length);
             string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);

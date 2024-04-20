@@ -1,0 +1,18 @@
+/auth p p p
+Hello world
+Hello chat
+/join verified-1
+Hello
+world
+Hello
+world
+/join verified-2
+Hello chat
+Hello
+world
+Hello
+/join verified-3
+world
+Hello chat
+Hello world
+

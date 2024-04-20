@@ -13,6 +13,7 @@ namespace IPK24Chat
         MSG = 0x04,
         ERR = 0xFE,
         BYE = 0xFF
+        
     }
 
     public class UDPmessageHelper

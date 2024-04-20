@@ -1,0 +1,18 @@
+/auth xtrifo00 6e28ee1e-5c6f-4ef4-80e3-a368724ccb39 DT
+Hello world
+Hello chat
+Hello
+/join verified-1
+world
+Hello
+world
+Hello chat
+/join verified-2
+Hello
+world
+Hello
+world
+/join verified-3
+Hello chat
+Hello world
+

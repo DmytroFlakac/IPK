@@ -45,7 +45,7 @@ class Program
         rootCommand.AddOption(udpRetryCountOption);
 
         rootCommand.SetHandler(
-            (transportProtocol, serverAddress, serverPort, udpConfirmationTimeout, udpRetryCount) =>
+            async (transportProtocol, serverAddress, serverPort, udpConfirmationTimeout, udpRetryCount) =>
             {
                 if (transportProtocol == "tcp")
                 {

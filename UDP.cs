@@ -34,6 +34,7 @@ namespace IPK24Chat
             
             try
             {
+                int currentMessageID = -1;
                 while (!cts.IsCancellationRequested)
                 {                    
                     IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Any, 0);
@@ -56,7 +57,10 @@ namespace IPK24Chat
                             waitConfirmation(errorMessage);    
                             Disconnect();
                         }
+                        if(currentMessageID == messageID)
+                            continue;
                         Console.WriteLine($"{displayname}: {msg}");
+                        currentMessageID = messageID;
                     }
                     else if(messageType == MessageType.ERR)
                     {
@@ -83,7 +87,7 @@ namespace IPK24Chat
                         client.Close();
                         Environment.Exit(0);
                     } 
-                    else if(messageType == MessageType.CONFIRM)
+                    else if(messageType == MessageType.CONFIRM || messageType == MessageType.REPLY)
                     {
                         continue;   
                     }  
@@ -121,6 +125,7 @@ namespace IPK24Chat
 
                 if (string.IsNullOrEmpty(input))
                 {
+                    Thread.Sleep(300);
                     if(!cts.IsCancellationRequested)
                         cts.Token.ThrowIfCancellationRequested();
                     Disconnect();
@@ -219,7 +224,7 @@ namespace IPK24Chat
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"ERR: {e.Message}");
+                // Console.Error.WriteLine($"ERR: {e.Message}");
             }
             finally
             {
@@ -368,7 +373,7 @@ namespace IPK24Chat
                 }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine($"Exception: {e.Message}");
+                    Console.Error.WriteLine($"ERR: {e.Message}");
                 }              
             }
             return false;
